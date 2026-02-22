@@ -7,6 +7,7 @@
 - ローカル: `C:\Users\manat\OneDrive\Desktop\claude\multistream-app`
 - 開発サーバー: `http://localhost:5173/`
 - バージョン管理: Git（コミット済み）
+- 開発サーバー起動コマンド: `cd "C:\Users\manat\OneDrive\Desktop\claude\multistream-app"; npm run dev`
 
 ## 現在の実装状況
 
@@ -50,11 +51,39 @@
 - onMouseLeaveは使っていない
 - window.mousemoveでY座標を監視、180px超で非表示
 
+### YouTubeプレイヤー
+- チャンネルURL（@xxx）をiframe埋め込みすると「エラーが発生しました」になることを確認済み
+- `/embed/live_stream?channel=UCxxxxxxxx` エンドポイントはチャンネルID必須、ハンドル名不可
+
+## 明日やること（最優先）
+
+### YouTubeチャンネルID自動解決機能
+チャンネルハンドル（@xxx）からチャンネルID（UC...）を自動取得する機能の実装。
+
+**方針:**
+- CORSプロキシ（`corsproxy.io`）経由でYouTubeページのHTMLを取得
+- 正規表現でチャンネルIDを抽出（複数パターンでフォールバック）
+- 取得したIDをlocalStorageにキャッシュ（2回目以降はプロキシ不要）
+- プロキシ失敗時はエラー表示してVideo IDの直接入力にフォールバック
+
+**抽出パターン（優先順）:**
+1. `"externalId":"(UC[\w-]{22})"` — 高速でシンプル
+2. `<link rel="canonical" href="...channel/(UC...)">` — 確実
+3. `ytInitialData` のJSONパース — 最も正確だが重い
+
+**実装場所:**
+- `src/utils/resolveChannelId.ts` として新規作成
+- `AddStreamModal.tsx` でYouTubeチャンネル追加時に呼び出す
+
+## 今後の予定（未実装・優先順位順）
+1. YouTubeチャンネルID自動解決（明日着手）
+2. お気に入り/よく見る配信者のブックマーク機能
+3. 設定モーダルへの各種設定機能の追加
+4. レイアウトプリセット（2x2、3x3、1メイン+サブなど）
+5. 枠のリサイズ機能（タイリング型、境界線ドラッグ方式で再実装）
+6. コメント欄（チャット）表示機能
+
 ## 運用ルール
 - Claudeがコードを編集したら会話の最後にgit commitする
 - コミットコマンド: `cd "C:\Users\manat\OneDrive\Desktop\claude\multistream-app"; git add .; git commit -m "メッセージ"`
-
-## 今後の予定（未実装）
-- 設定モーダルへの各種設定機能の追加
-- コメント欄（チャット）表示機能
-- レイアウトプリセット
+- 新しいチャット開始時: このファイル（`docs/project_context.md`）を最初に読ませる
