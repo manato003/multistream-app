@@ -18,6 +18,8 @@ function detectPlatformFromUrl(url: string) {
     const t = url.trim().toLowerCase();
     if (t.includes('twitch.tv')) return { type: 'twitch' as const, parsed: parseTwitchInput(url) };
     if (t.includes('youtube.com') || t.includes('youtu.be')) return { type: 'youtube' as const, parsed: parseYouTubeInput(url) };
+    // @handle は YouTube チャンネルとして扱う
+    if (url.trim().startsWith('@')) return { type: 'youtube' as const, parsed: parseYouTubeInput(`https://www.youtube.com/${url.trim()}`) };
     return null;
 }
 
