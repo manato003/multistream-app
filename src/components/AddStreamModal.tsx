@@ -1,9 +1,10 @@
 import React, { useState, useRef } from 'react';
-import { X, Link as LinkIcon, Youtube, Plus, Trash2, CheckCircle } from 'lucide-react';
+import { X, Link as LinkIcon, Youtube, Plus, Trash2, CheckCircle, Loader } from 'lucide-react';
 import type { Stream } from '../types';
 import { t } from '../i18n';
 import type { Locale } from '../i18n';
 import { parseTwitchInput, parseYouTubeInput } from '../utils/parseInput';
+import { resolveYouTubeChannel } from '../utils/resolveChannelId';
 
 interface AddStreamModalProps {
     onClose: () => void;
@@ -41,21 +42,38 @@ const AddStreamModal: React.FC<AddStreamModalProps> = ({ onClose, onAdd, locale,
     const [singlePlatform, setSinglePlatform] = useState<'twitch' | 'youtube'>('twitch');
     const [bulkInput, setBulkInput] = useState('');
     const [bulkResults, setBulkResults] = useState<{ ok: number; fail: number } | null>(null);
+    const [resolving, setResolving] = useState(false);
+    const [resolveError, setResolveError] = useState<string | null>(null);
     const singleInputRef = useRef<HTMLInputElement>(null);
 
     // ── Single add ────────────────────────────────────────────────────────
-    const addSingle = () => {
+    const addSingle = async () => {
         const val = singleInput.trim();
-        if (!val) return;
+        if (!val || resolving) return;
+        setResolveError(null);
 
         const detected = detectPlatformFromUrl(val);
-        if (detected) {
-            onAdd(buildStream(detected.type, detected.parsed));
-        } else {
-            // No URL detected → use selected platform
-            const parsed = singlePlatform === 'twitch' ? parseTwitchInput(val) : parseYouTubeInput(val);
-            onAdd(buildStream(singlePlatform, parsed));
+        const type = detected?.type ?? singlePlatform;
+        const parsed = detected?.parsed ?? (singlePlatform === 'twitch' ? parseTwitchInput(val) : parseYouTubeInput(val));
+
+        // If YouTube channel handle, resolve to live video ID first
+        if (type === 'youtube' && parsed.inputType === 'channel') {
+            setResolving(true);
+            try {
+                const { videoId } = await resolveYouTubeChannel(parsed.sourceId);
+                // Treat resolved live stream as a video (not channel) so YouTubePlayer uses /embed/VIDEO_ID
+                onAdd(buildStream(type, { ...parsed, sourceId: videoId, title: parsed.title, inputType: 'video' }));
+                setSingleInput('');
+                singleInputRef.current?.focus();
+            } catch (err) {
+                setResolveError(err instanceof Error ? err.message : 'チャンネルIDの取得に失敗しました');
+            } finally {
+                setResolving(false);
+            }
+            return;
         }
+
+        onAdd(buildStream(type, parsed));
         setSingleInput('');
         singleInputRef.current?.focus();
     };
@@ -113,14 +131,25 @@ const AddStreamModal: React.FC<AddStreamModalProps> = ({ onClose, onAdd, locale,
                             className="form-input"
                             placeholder={locale === 'ja' ? 'URL貼付け or 名前入力、Enterで追加' : 'Paste URL or enter name, Enter to add'}
                             value={singleInput}
-                            onChange={e => setSingleInput(e.target.value)}
+                            onChange={e => { setSingleInput(e.target.value); setResolveError(null); }}
                             onKeyDown={e => e.key === 'Enter' && addSingle()}
                             autoFocus
+                            disabled={resolving}
                         />
-                        <button className="add-btn" onClick={addSingle}>
-                            <Plus size={14} />
+                        <button className="add-btn" onClick={addSingle} disabled={resolving}>
+                            {resolving ? <Loader size={14} className="spin" /> : <Plus size={14} />}
                         </button>
                     </div>
+                    {resolving && (
+                        <p style={{ fontSize: '0.72rem', color: '#94a3b8', marginTop: '4px' }}>
+                            {locale === 'ja' ? 'チャンネルIDを取得中...' : 'Resolving channel ID...'}
+                        </p>
+                    )}
+                    {resolveError && (
+                        <p style={{ fontSize: '0.72rem', color: '#f87171', marginTop: '4px' }}>
+                            {resolveError}
+                        </p>
+                    )}
                 </div>
 
                 <div className="form-divider"><span>{locale === 'ja' ? 'まとめて追加' : 'bulk add'}</span></div>
