@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react';
-import { X, Link as LinkIcon, Youtube, Plus, Trash2, CheckCircle, Loader } from 'lucide-react';
+import { X, Link as LinkIcon, Plus, Trash2, CheckCircle, Loader } from 'lucide-react';
 import type { Stream } from '../types';
 import { t } from '../i18n';
 import type { Locale } from '../i18n';
@@ -33,15 +33,8 @@ function buildStream(type: 'twitch' | 'youtube', parsed: ReturnType<typeof parse
     };
 }
 
-const TwitchIcon = ({ size = 16 }) => (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="currentColor">
-        <path d="M11.571 4.714h1.715v5.143H11.57zm4.715 0h1.714v5.143h-1.714zM5.143 0L1.714 3.429v17.143h5.143V24l3.428-3.429h2.572L22.286 11.143V0zm15.428 10.286l-3.428 3.428h-3.429l-3 3v-3H6.857V1.714h13.714Z" />
-    </svg>
-);
-
 const AddStreamModal: React.FC<AddStreamModalProps> = ({ onClose, onAdd, locale, addedStreams, onRemove }) => {
     const [singleInput, setSingleInput] = useState('');
-    const [singlePlatform, setSinglePlatform] = useState<'twitch' | 'youtube'>('twitch');
     const [bulkInput, setBulkInput] = useState('');
     const [bulkResults, setBulkResults] = useState<{ ok: number; fail: number } | null>(null);
     const [resolving, setResolving] = useState(false);
@@ -55,8 +48,8 @@ const AddStreamModal: React.FC<AddStreamModalProps> = ({ onClose, onAdd, locale,
         setResolveError(null);
 
         const detected = detectPlatformFromUrl(val);
-        const type = detected?.type ?? singlePlatform;
-        const parsed = detected?.parsed ?? (singlePlatform === 'twitch' ? parseTwitchInput(val) : parseYouTubeInput(val));
+        const type = detected?.type ?? 'twitch';
+        const parsed = detected?.parsed ?? parseTwitchInput(val);
 
         // If YouTube channel handle, resolve to live video ID first
         if (type === 'youtube' && parsed.inputType === 'channel') {
@@ -113,20 +106,6 @@ const AddStreamModal: React.FC<AddStreamModalProps> = ({ onClose, onAdd, locale,
                         {locale === 'ja' ? 'URL または 配信者名 / ID' : 'URL or Streamer Name / ID'}
                     </label>
                     <div className="input-row">
-                        <div className="platform-selector">
-                            <button
-                                className={`platform-btn ${singlePlatform === 'twitch' ? 'active twitch' : ''}`}
-                                onClick={() => setSinglePlatform('twitch')} title="Twitch"
-                            >
-                                <TwitchIcon size={13} />
-                            </button>
-                            <button
-                                className={`platform-btn ${singlePlatform === 'youtube' ? 'active youtube' : ''}`}
-                                onClick={() => setSinglePlatform('youtube')} title="YouTube"
-                            >
-                                <Youtube size={13} />
-                            </button>
-                        </div>
                         <input
                             ref={singleInputRef}
                             type="text"
