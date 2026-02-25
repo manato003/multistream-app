@@ -19,7 +19,7 @@ interface StreamFrameProps {
     isDragTarget: boolean;
 }
 
-const StreamFrame: React.FC<StreamFrameProps> = ({
+const StreamFrame: React.FC<StreamFrameProps> = React.memo(({
     stream, onRemove, isArchiveMode, globalTime, locale,
     isExpanded, onToggleExpand, onDragHandleMouseDown,
     isDragging, isDragTarget,
@@ -114,5 +114,7 @@ const StreamFrame: React.FC<StreamFrameProps> = ({
         </div>
     );
 };
+
+});
 
 export default StreamFrame;

@@ -6,7 +6,7 @@ interface TwitchPlayerProps {
     time?: number;
 }
 
-const TwitchPlayer: React.FC<TwitchPlayerProps> = ({ channel, video, time }) => {
+const TwitchPlayer: React.FC<TwitchPlayerProps> = React.memo(({ channel, video, time }) => {
     const parentParam = window.location.hostname;
 
     let src = '';
@@ -35,5 +35,7 @@ const TwitchPlayer: React.FC<TwitchPlayerProps> = ({ channel, video, time }) => 
         ></iframe>
     );
 };
+
+});
 
 export default TwitchPlayer;

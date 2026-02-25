@@ -6,7 +6,7 @@ interface YouTubePlayerProps {
     time?: number;
 }
 
-const YouTubePlayer: React.FC<YouTubePlayerProps> = ({ videoId, isChannel, time }) => {
+const YouTubePlayer: React.FC<YouTubePlayerProps> = React.memo(({ videoId, isChannel, time }) => {
     let src: string;
 
     if (isChannel) {
@@ -31,5 +31,7 @@ const YouTubePlayer: React.FC<YouTubePlayerProps> = ({ videoId, isChannel, time 
         ></iframe>
     );
 };
+
+});
 
 export default YouTubePlayer;
