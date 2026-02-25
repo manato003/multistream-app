@@ -113,8 +113,6 @@ const StreamFrame: React.FC<StreamFrameProps> = React.memo(({
             {isDragTarget && <div className="drag-target-overlay" />}
         </div>
     );
-};
-
 });
 
 export default StreamFrame;
