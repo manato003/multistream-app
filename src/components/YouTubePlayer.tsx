@@ -30,8 +30,6 @@ const YouTubePlayer: React.FC<YouTubePlayerProps> = React.memo(({ videoId, isCha
             style={{ border: 'none' }}
         ></iframe>
     );
-};
-
 });
 
 export default YouTubePlayer;

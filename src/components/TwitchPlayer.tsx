@@ -34,8 +34,6 @@ const TwitchPlayer: React.FC<TwitchPlayerProps> = React.memo(({ channel, video, 
             style={{ border: 'none' }}
         ></iframe>
     );
-};
-
 });
 
 export default TwitchPlayer;
