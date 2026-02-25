@@ -42,6 +42,12 @@ export function parseTwitchInput(input: string): ParsedStreamInput {
 export function parseYouTubeInput(input: string): ParsedStreamInput {
     const trimmed = input.trim();
 
+    // @handle format (without full URL)
+    if (trimmed.startsWith('@')) {
+        const handle = trimmed.slice(1); // Remove @ prefix
+        return { sourceId: handle, title: trimmed, inputType: 'channel' };
+    }
+
     // YouTube watch URL: https://www.youtube.com/watch?v=VIDEO_ID
     const watchMatch = trimmed.match(/(?:https?:\/\/)?(?:www\.)?youtube\.com\/watch\?.*v=([a-zA-Z0-9_-]{11})/i);
     if (watchMatch) {

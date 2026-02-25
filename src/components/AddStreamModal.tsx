@@ -18,8 +18,12 @@ function detectPlatformFromUrl(url: string) {
     const t = url.trim().toLowerCase();
     if (t.includes('twitch.tv')) return { type: 'twitch' as const, parsed: parseTwitchInput(url) };
     if (t.includes('youtube.com') || t.includes('youtu.be')) return { type: 'youtube' as const, parsed: parseYouTubeInput(url) };
-    // @handle は YouTube チャンネルとして扱う
-    if (url.trim().startsWith('@')) return { type: 'youtube' as const, parsed: parseYouTubeInput(`https://www.youtube.com/${url.trim()}`) };
+    // @handle は YouTube チャンネルとして扱う（全角@も半角に変換）
+    const trimmed = url.trim();
+    if (trimmed.startsWith('@') || trimmed.startsWith('＠')) {
+        const normalized = trimmed.replace(/^＠/, '@'); // 全角@を半角に変換
+        return { type: 'youtube' as const, parsed: parseYouTubeInput(normalized) };
+    }
     return null;
 }
 
@@ -51,16 +55,23 @@ const AddStreamModal: React.FC<AddStreamModalProps> = ({ onClose, onAdd, locale,
         const type = detected?.type ?? 'twitch';
         const parsed = detected?.parsed ?? parseTwitchInput(val);
 
+        console.log('[AddStreamModal] Input:', val);
+        console.log('[AddStreamModal] Detected:', detected);
+        console.log('[AddStreamModal] Type:', type, 'Parsed:', parsed);
+
         // If YouTube channel handle, resolve to live video ID first
         if (type === 'youtube' && parsed.inputType === 'channel') {
             setResolving(true);
+            console.log('[AddStreamModal] Resolving YouTube channel:', parsed.sourceId);
             try {
                 const { videoId } = await resolveYouTubeChannel(parsed.sourceId);
+                console.log('[AddStreamModal] ✓ Resolved to videoId:', videoId);
                 // Treat resolved live stream as a video (not channel) so YouTubePlayer uses /embed/VIDEO_ID
                 onAdd(buildStream(type, { ...parsed, sourceId: videoId, title: parsed.title, inputType: 'video' }));
                 setSingleInput('');
                 singleInputRef.current?.focus();
             } catch (err) {
+                console.error('[AddStreamModal] ✗ Resolution failed:', err);
                 setResolveError(err instanceof Error ? err.message : 'チャンネルIDの取得に失敗しました');
             } finally {
                 setResolving(false);
@@ -68,6 +79,7 @@ const AddStreamModal: React.FC<AddStreamModalProps> = ({ onClose, onAdd, locale,
             return;
         }
 
+        console.log('[AddStreamModal] Adding stream directly (no resolution needed)');
         onAdd(buildStream(type, parsed));
         setSingleInput('');
         singleInputRef.current?.focus();
