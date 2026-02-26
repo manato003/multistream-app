@@ -11,6 +11,8 @@ import SettingsModal from './components/SettingsModal';
 import type { Stream } from './types';
 import { t } from './i18n';
 import type { Locale } from './i18n';
+import { useStreamHistory } from './hooks/useStreamHistory';
+import type { HistoryEntry } from './hooks/useStreamHistory';
 
 const HEADER_H = 36;
 const HIDE_THRESHOLD = HEADER_H * 5;
@@ -24,6 +26,7 @@ function App() {
   const [streams, setStreams] = useState<Stream[]>([]);
   const [headerVisible, setHeaderVisible] = useState(false);
   const headerVisibleRef = useRef(false);
+  const { history, addToHistory, removeFromHistory } = useStreamHistory();
 
   useEffect(() => {
     const onMouseMove = (e: MouseEvent) => {
@@ -63,7 +66,19 @@ function App() {
 
   const handleAddStream = (stream: Stream) => {
     setStreams(prev => [...prev, stream]);
+    addToHistory(stream);
   };
+
+  const handleAddFromHistory = useCallback((entry: HistoryEntry) => {
+    const stream: Stream = {
+      id: crypto.randomUUID(),
+      type: entry.type,
+      title: entry.title,
+      sourceId: entry.sourceId,
+      inputType: entry.inputType,
+    };
+    setStreams(prev => [...prev, stream]);
+  }, []);
 
   const handleToggleHidden = useCallback((id: string) => {
     setStreams(prev => prev.map(s => s.id === id ? { ...s, hidden: !s.hidden } : s));
@@ -125,6 +140,9 @@ function App() {
         <StreamSidePanel
           streams={streams}
           onToggleHidden={handleToggleHidden}
+          history={history}
+          onAddFromHistory={handleAddFromHistory}
+          onRemoveFromHistory={removeFromHistory}
           locale={locale}
         />
         <StreamGrid
