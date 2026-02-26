@@ -134,3 +134,35 @@
   background: rgba(239, 68, 68, 0.15);
   color: var(--danger);
 }
+
+.side-panel-drag-handle {
+  background: transparent;
+  border: none;
+  color: var(--text-secondary);
+  cursor: grab;
+  padding: 2px 2px;
+  border-radius: 3px;
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+  opacity: 0.3;
+  transition: opacity 0.1s;
+}
+
+.side-panel-item:hover .side-panel-drag-handle {
+  opacity: 0.8;
+}
+
+.side-panel-drag-handle:active {
+  cursor: grabbing;
+}
+
+.side-panel-item.is-drag-target {
+  background: rgba(139, 92, 246, 0.18);
+  border-radius: 4px;
+  outline: 1px solid rgba(139, 92, 246, 0.4);
+}
+
+.side-panel-item.is-dragging-item {
+  opacity: 0.35;
+}

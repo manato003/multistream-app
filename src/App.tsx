@@ -96,6 +96,17 @@ function App() {
     setStreams(prev => [...prev, stream]);
   }, []);
 
+  const handleReorder = useCallback((fromId: string, toId: string) => {
+    setStreams(prev => {
+      const arr = [...prev];
+      const fi = arr.findIndex(s => s.id === fromId);
+      const ti = arr.findIndex(s => s.id === toId);
+      if (fi === -1 || ti === -1) return prev;
+      [arr[fi], arr[ti]] = [arr[ti], arr[fi]];
+      return arr;
+    });
+  }, []);
+
   const handleToggleHidden = useCallback((id: string) => {
     setStreams(prev => prev.map(s => s.id === id ? { ...s, hidden: !s.hidden } : s));
   }, []);
@@ -190,6 +201,7 @@ function App() {
         <StreamSidePanel
           streams={streams}
           onToggleHidden={handleToggleHidden}
+          onReorder={handleReorder}
           history={history}
           onAddFromHistory={handleAddFromHistory}
           onRemoveFromHistory={removeFromHistory}
