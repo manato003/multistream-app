@@ -1,0 +1,18 @@
+{
+  "permissions": {
+    "allow": [
+      "mcp__Claude_Preview__preview_start",
+      "Bash(where npm)",
+      "Bash(where node)",
+      "Bash(npx tsc --noEmit)",
+      "Bash(git add src/utils/resolveChannelId.ts src/App.tsx src/components/StreamFrame.tsx)",
+      "Bash(git commit -m \"refactor: YouTubeチャンネル解決のキャッシュ機構を削除し常時フレッシュ取得に変更\")",
+      "Bash(git add src/utils/resolveChannelId.ts)",
+      "Bash(git commit -m \"fix: 24/7ストリーム\\(ニュース等\\)のライブ検出を修正 - isLive+hlsManifestUrlにも対応\")",
+      "Bash(git add src/components/StreamSidePanel.tsx src/App.tsx src/side-panel.css)",
+      "Bash(git commit -m \"feat: サイドパネルにドラッグで並べ替え機能を追加\")",
+      "Bash(git add .claude/)",
+      "Bash(git commit -m \"chore: .claude/launch.jsonを追加（開発サーバー設定）\")"
+    ]
+  }
+}
