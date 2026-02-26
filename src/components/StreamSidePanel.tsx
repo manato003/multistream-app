@@ -7,6 +7,7 @@ import type { HistoryEntry } from '../hooks/useStreamHistory';
 interface StreamSidePanelProps {
     streams: Stream[];
     onToggleHidden: (id: string) => void;
+    onRemove: (id: string) => void;
     onReorder: (fromId: string, toId: string) => void;
     history: HistoryEntry[];
     onAddFromHistory: (entry: HistoryEntry) => void;
@@ -15,7 +16,7 @@ interface StreamSidePanelProps {
 }
 
 const StreamSidePanel: React.FC<StreamSidePanelProps> = ({
-    streams, onToggleHidden, onReorder, history, onAddFromHistory, onRemoveFromHistory, locale,
+    streams, onToggleHidden, onRemove, onReorder, history, onAddFromHistory, onRemoveFromHistory, locale,
 }) => {
     const [visible, setVisible] = useState(false);
     const [draggingId, setDraggingId] = useState<string | null>(null);
@@ -125,6 +126,15 @@ const StreamSidePanel: React.FC<StreamSidePanelProps> = ({
                 >
                     {isHidden ? <Eye size={13} /> : <EyeOff size={13} />}
                 </button>
+                {!isHidden && (
+                    <button
+                        className="side-panel-toggle-btn danger"
+                        onClick={() => onRemove(stream.id)}
+                        title={label('閉じる', 'Close')}
+                    >
+                        <X size={11} />
+                    </button>
+                )}
             </div>
         );
     };

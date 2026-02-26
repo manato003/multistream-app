@@ -123,6 +123,10 @@ function App() {
     setStreams(prev => prev.map(s => s.id === id ? { ...s, hidden: !s.hidden } : s));
   }, []);
 
+  const handleRemoveStream = useCallback((id: string) => {
+    setStreams(prev => prev.filter(s => s.id !== id));
+  }, []);
+
   const handleUpdateSourceId = useCallback((id: string, newSourceId: string, isLive: boolean) => {
     setStreams(prev => prev.map(s =>
       s.id === id
@@ -213,6 +217,7 @@ function App() {
         <StreamSidePanel
           streams={streams}
           onToggleHidden={handleToggleHidden}
+          onRemove={handleRemoveStream}
           onReorder={handleReorder}
           history={history}
           onAddFromHistory={handleAddFromHistory}
