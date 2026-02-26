@@ -9,79 +9,114 @@
 - バージョン管理: Git（コミット済み）
 - 開発サーバー起動コマンド: `cd "C:\Users\manat\OneDrive\Desktop\claude\multistream-app"; npm run dev`
 
+## アプリの目的
+YouTube / Twitch のライブ配信を複数同時に視聴するWebアプリ。
+
 ## 現在の実装状況
 
-### 完了済み
+### 配信管理
 - YouTube / Twitch 埋め込みプレイヤー
-- マウスベースのドラッグ＆ドロップ枠入れ替え（elementFromPoint方式）
-- 16:9最適化グリッドレイアウト（自動計算）
-- ダブルクリックで枠を拡大/復帰
-- 個別配信リロード（StreamFrame内部でreloadKey管理、並び替え時に他の枠に影響しない）
-- ホバー表示ヘッダー（上端2px細バーがヘッダーの一部としてはみ出す方式）
-  - マウスY座標180px（ヘッダー高さ36px×5）超えで自動非表示
-- 配信追加モーダル（単発追加＋複数URL一括追加、モーダルを閉じずに連続追加可能）
-- レイアウト共有（Base64エンコード方式、インポート/エクスポート）
-- 多言語対応（日本語/英語）
-- localStorage永続化
-- ダークモードのみ（ライトモード廃止）
-- 設定モーダル（現在は空のプレースホルダー、今後機能追加予定）
+- `@handle` 入力でYouTubeチャンネルの現在ライブを自動解決（CORSプロキシ経由）
+  - `/live` ページで `"isLiveNow":true` を確認した場合のみ採用（予定配信を除外）
+  - フォールバック: `/videos` ページから最新動画IDを取得
+  - キャッシュ: ライブIDは5分TTL、非ライブは無期限（localStorage）
+- **起動時**に全YouTubeチャンネル枠のvideo IDをバックグラウンドで一括再取得
+- **リロードボタン押下時**にYouTubeチャンネル枠のvideo IDを再取得（スピナー表示）
+- **履歴からの追加時**にvideo IDを再取得してから追加
+- 再取得失敗時は古いvideo IDのまま静かに維持（エラー表示なし）
+- 配信追加モーダル（単発追加・複数URL一括追加、モーダルを閉じずに連続追加可能）
+- localStorage永続化（アクティブな配信・履歴）
 
-### ヘッダー構成（左→右）
+### レイアウト
+- 16:9最適化グリッドレイアウト（枠数に応じて自動計算）
+- ダブルクリックで枠を拡大/復帰
+- ドラッグ&ドロップで枠入れ替え（HTML5 DnD非対応、mousedown/mousemoveベースのカスタム実装）
+  - drag-global-overlayで全iframeをブロック、elementFromPointでターゲット検出
+
+### サイドパネル（左端ホバーで表示）
+- 左端2pxトリガーにマウスを近づけるとスライドイン
+- 「表示中」「非表示」「履歴」の3セクション
+- 個別の非表示・再表示トグル（EyeOffアイコン）
+- 履歴からワンクリックで再追加（+ボタン）・履歴から個別削除（×ボタン）
+- 配信追加時に自動で履歴へ記録（最大50件、同じチャンネルは先頭に移動）
+- 現在グリッドにある配信は履歴セクションに表示しない
+
+### ヘッダー（上端ホバーで表示）
+- 上端6pxトリガーにマウスを近づけるとスライドイン
+- マウスY座標180px超で自動非表示（onMouseLeaveは不使用）
 - 左: アプリタイトル（MonitorPlayアイコン）
-- 中央: 配信を追加ボタン（大きめ、アクセントカラー）
+- 中央: 配信を追加ボタン
 - 右: Share / Help / 言語切替 / 設定（歯車）
 
-### 削除済み機能
-- アーカイブ同期モード（改善余地ありとして削除）
-- リサイズ機能（UX問題で削除）
-- ライトモード
+### StreamFrameのヘッダーボタン（左→右）
+- 非表示（EyeOff）/ リロード（RefreshCw）/ ポップアウト（ExternalLink）/ 閉じる（X）
+
+### その他
+- 多言語対応（日本語/英語）
+- レイアウト共有（Base64エンコード方式、インポート/エクスポート）
+- ダークモードのみ（ライトモード廃止）
+- 設定モーダル（現在は空のプレースホルダー）
 
 ## 重要な実装メモ
 
-### ドラッグ＆ドロップ
+### ドラッグ&ドロップ
 - HTML5 DnD APIは使っていない（iframe干渉問題のため）
 - mousedown/mousemoveベースのカスタム実装
 - drag-global-overlayで全iframeをブロック中、elementFromPointで一時的にoverlay非表示にしてターゲット検出
 
-### リロード
-- 以前はStreamGridでreloadKeysをstateで管理していたが、並び替え時に全フレームがリマウントされるバグがあった
-- 現在はStreamFrame内部でreloadKeyをstateで持ち、playerコンポーネントにだけkeyを渡す方式
+### リロード・再マウント
+- StreamFrame内部で `reloadKey` をstateで持ち、playerコンポーネントにだけkeyを渡す方式
+- StreamFrameの `key={stream.id}` のみ（reloadKeyをkeyに含めない）
 
 ### ヘッダー非表示
 - onMouseLeaveは使っていない
 - window.mousemoveでY座標を監視、180px超で非表示
 
 ### YouTubeプレイヤー
-- チャンネルURL（@xxx）をiframe埋め込みすると「エラーが発生しました」になることを確認済み
-- `/embed/live_stream?channel=UCxxxxxxxx` エンドポイントはチャンネルID必須、ハンドル名不可
+- チャンネルURL（@xxx）をiframe埋め込みすると「エラーが発生しました」になる
+- 追加時に `resolveYouTubeChannel` でvideo IDを解決し、`/embed/VIDEO_ID` として埋め込む
+- `inputType` は解決後 `'video'` に変換して保存
 
-## 明日やること（最優先）
+### React.memo
+- StreamFrame / TwitchPlayer / YouTubePlayer すべてに React.memo を適用済み
+- StreamGridのコールバックはすべてuseCallbackで安定化済み
 
-### YouTubeチャンネルID自動解決機能
-チャンネルハンドル（@xxx）からチャンネルID（UC...）を自動取得する機能の実装。
+### 既知の課題
+- ドラッグ&ドロップ時に移動した枠以外もリロードされる
+  - 原因: swap後にDOMの物理位置が変わりブラウザがiframeをリロードする
+  - 対策候補: CSS GridのorderプロパティでDOM位置を変えずに視覚的に入れ替える（未実装）
 
-**方針:**
-- CORSプロキシ（`corsproxy.io`）経由でYouTubeページのHTMLを取得
-- 正規表現でチャンネルIDを抽出（複数パターンでフォールバック）
-- 取得したIDをlocalStorageにキャッシュ（2回目以降はプロキシ不要）
-- プロキシ失敗時はエラー表示してVideo IDの直接入力にフォールバック
+## ファイル構成
+```
+src/
+  components/
+    AddStreamModal.tsx   # 配信追加モーダル
+    HelpModal.tsx
+    SettingsModal.tsx
+    ShareModal.tsx
+    StreamFrame.tsx      # 個別配信枠（ヘッダーボタン・リロード・非表示）
+    StreamGrid.tsx       # グリッドレイアウト・ドラッグ&ドロップ
+    StreamSidePanel.tsx  # 左サイドパネル（表示中・非表示・履歴）
+    TwitchPlayer.tsx
+    YouTubePlayer.tsx
+  hooks/
+    useStreamHistory.ts  # 配信履歴のlocalStorage管理
+  utils/
+    parseInput.ts        # URL・ハンドル入力のパース
+    resolveChannelId.ts  # YouTubeチャンネルハンドル→video ID解決
+  App.tsx
+  index.css
+  side-panel.css
+  types.ts
+  i18n.ts
+```
 
-**抽出パターン（優先順）:**
-1. `"externalId":"(UC[\w-]{22})"` — 高速でシンプル
-2. `<link rel="canonical" href="...channel/(UC...)">` — 確実
-3. `ytInitialData` のJSONパース — 最も正確だが重い
-
-**実装場所:**
-- `src/utils/resolveChannelId.ts` として新規作成
-- `AddStreamModal.tsx` でYouTubeチャンネル追加時に呼び出す
-
-## 今後の予定（未実装・優先順位順）
-1. YouTubeチャンネルID自動解決（明日着手）
-2. お気に入り/よく見る配信者のブックマーク機能
-3. 設定モーダルへの各種設定機能の追加
-4. レイアウトプリセット（2x2、3x3、1メイン+サブなど）
-5. 枠のリサイズ機能（タイリング型、境界線ドラッグ方式で再実装）
-6. コメント欄（チャット）表示機能
+## 今後の予定（未実装）
+1. 設定モーダルへの機能追加
+2. レイアウトプリセット（2x2、3x3、1メイン+サブなど）
+3. 枠のリサイズ機能（境界線ドラッグ方式）
+4. コメント欄（チャット）表示機能
+5. ドラッグ時のリロード問題修正（CSS order方式）
 
 ## 運用ルール
 - Claudeがコードを編集したら会話の最後にgit commitする
