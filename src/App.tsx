@@ -76,7 +76,7 @@ function App() {
     let isLive: boolean | undefined;
     if (entry.type === 'youtube' && entry.inputType === 'channel') {
       try {
-        const result = await resolveYouTubeChannel(entry.sourceId, true);
+        const result = await resolveYouTubeChannel(entry.sourceId);
         isLive = result.isLive;
         sourceId = result.isLive ? result.videoId : entry.sourceId;
         inputType = result.isLive ? 'video' : 'channel';
@@ -117,7 +117,7 @@ function App() {
         youtubeChannels.forEach(async (stream) => {
           try {
             const handle = stream.channelHandle!;
-            const { videoId, isLive } = await resolveYouTubeChannel(handle, true);
+            const { videoId, isLive } = await resolveYouTubeChannel(handle);
             setStreams(cur => cur.map(s =>
               s.id === stream.id
                 ? { ...s, sourceId: isLive ? videoId : handle, inputType: isLive ? 'video' : 'channel', isLive }

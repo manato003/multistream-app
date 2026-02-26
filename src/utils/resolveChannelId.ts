@@ -8,36 +8,8 @@
  *   4. Not live → return isLive: false (show offline screen, no fallback to videos)
  *
  * No API key or backend required.
- * Live video IDs are cached for 5 minutes.
+ * Always fetches fresh data (no localStorage caching).
  */
-
-const CACHE_PREFIX = 'yt_resolved_';
-const LIVE_TTL_MS = 5 * 60 * 1000;      // ライブID: 5分
-const OFFLINE_TTL_MS = 2 * 60 * 1000;   // オフライン判定: 2分（頻繁に再チェックしない）
-
-interface CacheEntry {
-    videoId: string;
-    isLive: boolean;
-    ts: number;
-}
-
-function getCache(key: string): CacheEntry | null {
-    try {
-        const raw = localStorage.getItem(CACHE_PREFIX + key);
-        if (!raw) return null;
-        const entry: CacheEntry = JSON.parse(raw);
-        const ttl = entry.isLive ? LIVE_TTL_MS : OFFLINE_TTL_MS;
-        if (Date.now() - entry.ts > ttl) return null;
-        return entry;
-    } catch { return null; }
-}
-
-function setCache(key: string, videoId: string, isLive: boolean): void {
-    try {
-        const entry: CacheEntry = { videoId, isLive, ts: Date.now() };
-        localStorage.setItem(CACHE_PREFIX + key, JSON.stringify(entry));
-    } catch { /* ignore */ }
-}
 
 const PROXIES = [
     (url: string) => `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(url)}`,
@@ -46,7 +18,7 @@ const PROXIES = [
 
 async function fetchViaProxy(targetUrl: string): Promise<string> {
     let lastError: Error | null = null;
-    
+
     for (const proxyFn of PROXIES) {
         try {
             const proxyUrl = proxyFn(targetUrl);
@@ -60,7 +32,7 @@ async function fetchViaProxy(targetUrl: string): Promise<string> {
             console.warn(`[fetchViaProxy] Proxy failed for ${targetUrl}:`, err);
         }
     }
-    
+
     throw lastError || new Error('All proxies failed');
 }
 
@@ -76,23 +48,16 @@ function checkIsLive(html: string): boolean {
 
 export interface ResolveResult {
     videoId: string;
-    /** true = currently live, false = latest video */
+    /** true = currently live, false = offline */
     isLive: boolean;
 }
 
 /**
- * Resolve a YouTube channel handle to a video ID (live or latest).
+ * Resolve a YouTube channel handle to a live video ID.
  * @param handle - e.g. "@Popo_Ieiri" or "Popo_Ieiri"
- * @param forceRefresh - キャッシュを無視して再取得する
  */
-export async function resolveYouTubeChannel(handle: string, forceRefresh = false): Promise<ResolveResult> {
+export async function resolveYouTubeChannel(handle: string): Promise<ResolveResult> {
     const cleanHandle = handle.startsWith('@') ? handle.slice(1) : handle;
-    const cacheKey = cleanHandle.toLowerCase();
-
-    if (!forceRefresh) {
-        const cached = getCache(cacheKey);
-        if (cached) return { videoId: cached.videoId, isLive: cached.isLive };
-    }
 
     // Step 1: try /live page — accept ONLY if isLiveNow:true (rejects scheduled streams)
     try {
@@ -101,19 +66,16 @@ export async function resolveYouTubeChannel(handle: string, forceRefresh = false
         const videoId = extractVideoIdFromCanonical(html);
         const isLive = checkIsLive(html);
         if (videoId && isLive) {
-            setCache(cacheKey, videoId, true);
             console.log(`[resolveYouTubeChannel] ✓ Live: ${videoId}`);
             return { videoId, isLive: true };
         }
         // ライブ中でない（予定配信 or オフライン）
         console.log(`[resolveYouTubeChannel] Not live (isLiveNow=false or no canonical)`);
-        setCache(cacheKey, '', false);
         return { videoId: '', isLive: false };
     } catch (err) {
         console.warn(`[resolveYouTubeChannel] /live fetch failed:`, err);
     }
 
     // プロキシ失敗時もオフライン扱い
-    setCache(cacheKey, '', false);
     return { videoId: '', isLive: false };
 }

@@ -57,7 +57,7 @@ const StreamFrame: React.FC<StreamFrameProps> = React.memo(({
         if (stream.type === 'youtube' && stream.inputType === 'channel') {
             setIsResolving(true);
             try {
-                const { videoId, isLive } = await resolveYouTubeChannel(stream.channelHandle ?? stream.sourceId, true);
+                const { videoId, isLive } = await resolveYouTubeChannel(stream.channelHandle ?? stream.sourceId);
                 onUpdateSourceId(stream.id, videoId, isLive);
                 setReloadKey(k => k + 1);
             } catch (err) {
