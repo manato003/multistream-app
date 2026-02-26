@@ -169,16 +169,6 @@
 
 /* ===== Chat Panel (right) ===== */
 
-.chat-panel-trigger {
-  position: fixed;
-  top: 0;
-  right: 0;
-  width: 6px;
-  height: 100%;
-  z-index: 1000;
-  cursor: pointer;
-}
-
 .chat-panel {
   position: fixed;
   top: 0;
@@ -341,4 +331,39 @@
   text-align: center;
   padding: 20px;
   line-height: 1.5;
+}
+
+/* ===== Panel swap (設定: パネル左右入れ替え) ===== */
+
+/* 配信管理パネルを右側に */
+.side-panel-trigger.right {
+  left: auto;
+  right: 0;
+}
+
+.side-panel.right {
+  left: auto;
+  right: 0;
+  border-right: none;
+  border-left: 2px solid transparent;
+  border-image: linear-gradient(to bottom, #8b5cf6, #ec4899) 1;
+  transform: translateX(calc(100% - 2px));
+}
+
+.side-panel.right.visible {
+  transform: translateX(0);
+}
+
+/* コメントパネルを左側に */
+.chat-panel.left {
+  right: auto;
+  left: 0;
+  border-left: none;
+  border-right: 2px solid transparent;
+  border-image: linear-gradient(to bottom, #8b5cf6, #ec4899) 1;
+  transform: translateX(-100%);
+}
+
+.chat-panel.left.visible {
+  transform: translateX(0);
 }

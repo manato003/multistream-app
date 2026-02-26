@@ -15,10 +15,11 @@ interface StreamSidePanelProps {
     onRemoveFromHistory: (historyId: string) => void;
     onReorderHistory: (fromId: string, toId: string) => void;
     locale: Locale;
+    swapped?: boolean;
 }
 
 const StreamSidePanel: React.FC<StreamSidePanelProps> = ({
-    streams, onToggleHidden, onRemove, onReorder, history, onAddFromHistory, onRemoveFromHistory, onReorderHistory, locale,
+    streams, onToggleHidden, onRemove, onReorder, history, onAddFromHistory, onRemoveFromHistory, onReorderHistory, locale, swapped = false,
 }) => {
     const [visible, setVisible] = useState(false);
     const hideTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -91,12 +92,12 @@ const StreamSidePanel: React.FC<StreamSidePanelProps> = ({
     return (
         <>
             <div
-                className="side-panel-trigger"
+                className={`side-panel-trigger${swapped ? ' right' : ''}`}
                 onMouseEnter={show}
                 onMouseLeave={scheduleHide}
             />
             <div
-                className={`side-panel ${visible ? 'visible' : ''}`}
+                className={`side-panel${visible ? ' visible' : ''}${swapped ? ' right' : ''}`}
                 onMouseEnter={show}
                 onMouseLeave={scheduleHide}
             >

@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
-import { Plus, MonitorPlay, Settings, Share2, HelpCircle, Languages } from 'lucide-react';
+import { Plus, MonitorPlay, Settings, Share2, HelpCircle, Languages, MessageSquare } from 'lucide-react';
 import './index.css';
 import './side-panel.css';
 import StreamGrid from './components/StreamGrid';
@@ -14,6 +14,7 @@ import { t } from './i18n';
 import type { Locale } from './i18n';
 import { useStreamHistory } from './hooks/useStreamHistory';
 import type { HistoryEntry } from './hooks/useStreamHistory';
+import { useSettings } from './hooks/useSettings';
 import { resolveYouTubeChannel, resolveVideoToChannel } from './utils/resolveChannelId';
 
 const HEADER_H = 36;
@@ -25,7 +26,8 @@ function App() {
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
   const [isHelpModalOpen, setIsHelpModalOpen] = useState(false);
   const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
-  const [isChatOpen, setIsChatOpen] = useState(false);
+  const [isChatOpen, setIsChatOpen] = useState(() => localStorage.getItem('chatPanelOpen') === 'true');
+  const [settings, updateSetting] = useSettings();
   const [streams, setStreams] = useState<Stream[]>([]);
   const [headerVisible, setHeaderVisible] = useState(false);
   const headerVisibleRef = useRef(false);
@@ -60,6 +62,10 @@ function App() {
   useEffect(() => {
     localStorage.setItem('activeStreams', JSON.stringify(streams));
   }, [streams]);
+
+  useEffect(() => {
+    localStorage.setItem('chatPanelOpen', String(isChatOpen));
+  }, [isChatOpen]);
 
   const handleLocaleChange = useCallback(() => {
     const next: Locale = locale === 'ja' ? 'en' : 'ja';
@@ -228,6 +234,14 @@ function App() {
 
         {/* Right: controls */}
         <div className="header-controls">
+          <button
+            className={`header-btn${isChatOpen ? ' active' : ''}`}
+            onClick={() => setIsChatOpen(v => !v)}
+            title={locale === 'ja' ? 'コメント' : 'Chat'}
+          >
+            <MessageSquare size={14} />
+          </button>
+
           <button className="header-btn" onClick={() => setIsShareModalOpen(true)} title={t(locale, 'shareLayout')}>
             <Share2 size={14} />
           </button>
@@ -251,7 +265,7 @@ function App() {
         </div>
       </header>
 
-      <main className={`app-main${isChatOpen ? ' chat-open' : ''}`}>
+      <main className={`app-main${isChatOpen ? ' chat-open' : ''}${settings.panelLayout === 'swapped' ? ' panels-swapped' : ''}`}>
         <StreamSidePanel
           streams={streams}
           onToggleHidden={handleToggleHidden}
@@ -262,6 +276,7 @@ function App() {
           onRemoveFromHistory={removeFromHistory}
           onReorderHistory={reorderHistory}
           locale={locale}
+          swapped={settings.panelLayout === 'swapped'}
         />
         <StreamGrid
           streams={visibleStreams}
@@ -276,8 +291,8 @@ function App() {
             streams={streams}
             locale={locale}
             isOpen={isChatOpen}
-            onOpen={() => setIsChatOpen(true)}
             onClose={() => setIsChatOpen(false)}
+            swapped={settings.panelLayout === 'swapped'}
           />
       </main>
 
@@ -311,6 +326,8 @@ function App() {
         <SettingsModal
           onClose={() => setIsSettingsModalOpen(false)}
           locale={locale}
+          settings={settings}
+          onUpdateSetting={updateSetting}
         />
       )}
     </div>

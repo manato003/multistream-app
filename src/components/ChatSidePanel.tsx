@@ -7,8 +7,8 @@ interface ChatSidePanelProps {
     streams: Stream[];
     locale: Locale;
     isOpen: boolean;
-    onOpen: () => void;
     onClose: () => void;
+    swapped?: boolean;
 }
 
 function getChatUrl(stream: Stream): string | null {
@@ -27,7 +27,7 @@ function getChatUrl(stream: Stream): string | null {
     return null;
 }
 
-const ChatSidePanel: React.FC<ChatSidePanelProps> = ({ streams, locale, isOpen, onOpen, onClose }) => {
+const ChatSidePanel: React.FC<ChatSidePanelProps> = ({ streams, locale, isOpen, onClose, swapped = false }) => {
     const [selectedId, setSelectedId] = useState<string | null>(null);
     const [isSelectorExpanded, setIsSelectorExpanded] = useState(false);
 
@@ -68,14 +68,8 @@ const ChatSidePanel: React.FC<ChatSidePanelProps> = ({ streams, locale, isOpen, 
 
     return (
         <>
-            {/* 右端ホバートリガー */}
-            <div
-                className="chat-panel-trigger"
-                onMouseEnter={onOpen}
-            />
-
             {/* チャットパネル本体 */}
-            <div className={`chat-panel ${isOpen ? 'visible' : ''}`}>
+            <div className={`chat-panel${isOpen ? ' visible' : ''}${swapped ? ' left' : ''}`}>
                 {/* ヘッダー */}
                 <div className="chat-panel-header">
                     <MessageSquare size={13} style={{ color: '#8b5cf6', flexShrink: 0 }} />
@@ -150,7 +144,6 @@ const ChatSidePanel: React.FC<ChatSidePanelProps> = ({ streams, locale, isOpen, 
                     )}
                 </div>
             </div>
-        </>
     );
 };
 
