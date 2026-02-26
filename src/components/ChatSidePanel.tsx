@@ -1,13 +1,13 @@
-import React, { useState, useEffect, useMemo } from 'react';
-import { MessageSquare, X, ChevronDown } from 'lucide-react';
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
+import { MessageSquare, Pin, ChevronDown } from 'lucide-react';
 import type { Stream } from '../types';
 import type { Locale } from '../i18n';
 
 interface ChatSidePanelProps {
     streams: Stream[];
     locale: Locale;
-    isOpen: boolean;
-    onClose: () => void;
+    isPinned: boolean;
+    onPinChange: (pinned: boolean) => void;
     swapped?: boolean;
 }
 
@@ -27,19 +27,33 @@ function getChatUrl(stream: Stream): string | null {
     return null;
 }
 
-const ChatSidePanel: React.FC<ChatSidePanelProps> = ({ streams, locale, isOpen, onClose, swapped = false }) => {
+const ChatSidePanel: React.FC<ChatSidePanelProps> = ({ streams, locale, isPinned, onPinChange, swapped = false }) => {
+    const [visible, setVisible] = useState(false);
     const [selectedId, setSelectedId] = useState<string | null>(null);
     const [isSelectorExpanded, setIsSelectorExpanded] = useState(false);
+    const hideTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
     const label = (ja: string, en: string) => locale === 'ja' ? ja : en;
 
-    // チャット表示可能なストリームのみ絞り込む
+    // ── ホバー表示制御 ─────────────────────────────────────────────────────
+    const show = useCallback(() => {
+        if (hideTimerRef.current) clearTimeout(hideTimerRef.current);
+        setVisible(true);
+    }, []);
+
+    const scheduleHide = useCallback(() => {
+        hideTimerRef.current = setTimeout(() => setVisible(false), 300);
+    }, []);
+
+    const isVisible = visible || isPinned;
+
+    // ── チャット表示可能なストリームのみ絞り込む ───────────────────────────
     const chatStreams = useMemo(
         () => streams.filter(s => getChatUrl(s) !== null),
         [streams],
     );
 
-    // 選択中のストリームが削除されたら選択解除 + セレクター展開
+    // 選択中のストリームが削除されたら選択解除
     useEffect(() => {
         if (selectedId && !chatStreams.find(s => s.id === selectedId)) {
             setSelectedId(null);
@@ -47,27 +61,37 @@ const ChatSidePanel: React.FC<ChatSidePanelProps> = ({ streams, locale, isOpen, 
         }
     }, [chatStreams, selectedId]);
 
-    // パネルを開いたとき、未選択なら先頭を自動選択
+    // パネルが表示されたとき、未選択なら先頭を自動選択
     useEffect(() => {
-        if (isOpen && selectedId === null && chatStreams.length > 0) {
+        if (isVisible && selectedId === null && chatStreams.length > 0) {
             setSelectedId(chatStreams[0].id);
         }
-    }, [isOpen, chatStreams, selectedId]);
+    }, [isVisible, chatStreams, selectedId]);
 
     const selectedStream = chatStreams.find(s => s.id === selectedId) ?? null;
     const chatUrl = selectedStream ? getChatUrl(selectedStream) : null;
 
-    // チャンネルを選択したらセレクターを折りたたむ
     const handleSelectChannel = (id: string) => {
         setSelectedId(id);
         setIsSelectorExpanded(false);
     };
 
-    // セレクター: 選択済み＆未展開 → 折りたたみ表示 / それ以外 → リスト表示
     const showCollapsed = selectedStream !== null && !isSelectorExpanded;
 
     return (
-            <div className={`chat-panel${isOpen ? ' visible' : ''}${swapped ? ' left' : ''}`}>
+        <>
+            {/* 右端（swapped 時は左端）の 6px ホバートリガー領域 */}
+            <div
+                className={`chat-panel-trigger${swapped ? ' left' : ''}`}
+                onMouseEnter={show}
+                onMouseLeave={scheduleHide}
+            />
+
+            <div
+                className={`chat-panel${isVisible ? ' visible' : ''}${swapped ? ' left' : ''}`}
+                onMouseEnter={show}
+                onMouseLeave={scheduleHide}
+            >
                 {/* ヘッダー */}
                 <div className="chat-panel-header">
                     <MessageSquare size={13} style={{ color: '#8b5cf6', flexShrink: 0 }} />
@@ -75,11 +99,11 @@ const ChatSidePanel: React.FC<ChatSidePanelProps> = ({ streams, locale, isOpen, 
                         {label('コメント', 'Chat')}
                     </span>
                     <button
-                        className="chat-panel-close"
-                        onClick={onClose}
-                        title={label('閉じる', 'Close')}
+                        className={`chat-panel-pin${isPinned ? ' active' : ''}`}
+                        onClick={() => onPinChange(!isPinned)}
+                        title={isPinned ? label('ピン解除', 'Unpin') : label('ピン留め', 'Pin')}
                     >
-                        <X size={14} />
+                        <Pin size={13} />
                     </button>
                 </div>
 
@@ -142,6 +166,7 @@ const ChatSidePanel: React.FC<ChatSidePanelProps> = ({ streams, locale, isOpen, 
                     )}
                 </div>
             </div>
+        </>
     );
 };
 

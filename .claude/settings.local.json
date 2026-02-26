@@ -29,7 +29,8 @@
       "Bash(git add src/components/AddStreamModal.tsx src/App.tsx)",
       "Bash(git add src/hooks/useSettings.ts src/components/SettingsModal.tsx src/components/ChatSidePanel.tsx src/components/StreamSidePanel.tsx src/App.tsx src/side-panel.css src/index.css)",
       "Bash(git add src/components/ChatSidePanel.tsx)",
-      "Bash(git add .)"
+      "Bash(git add .)",
+      "Bash(git add src/components/StreamGrid.tsx)"
     ]
   }
 }

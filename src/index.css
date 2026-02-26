@@ -157,16 +157,17 @@ body {
   align-items: stretch;
   justify-content: stretch;
   background: #000;
-  padding-right: 0;
-  transition: padding-right 0.2s ease;
+  padding: 0;
+  transition: padding 0.2s ease;
 }
 
-.app-main.chat-open {
+/* コメントパネルがピン留めされているとき */
+.app-main.chat-pinned {
   padding-right: 280px;
 }
 
 /* コメントパネルが左側のとき（パネル入れ替え時） */
-.app-main.chat-open.panels-swapped {
+.app-main.chat-pinned.panels-swapped {
   padding-right: 0;
   padding-left: 280px;
 }

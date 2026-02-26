@@ -145,10 +145,9 @@ const StreamGrid: React.FC<StreamGridProps> = ({ streams, setStreams, isArchiveM
     // ── Render ───────────────────────────────────────────────────────────────
     if (streams.length === 0) {
         const isSwapped = panelLayout === 'swapped';
-        // Default: left=Streams(edge hover), right=Chat(header button)
-        // Swapped: left=Chat(header button), right=Streams(edge hover)
-        const leftArrow  = isSwapped ? '↑' : '←';
-        const rightArrow = isSwapped ? '→' : '↑';
+        // Both panels are edge-hover: ← for left edge, → for right edge
+        const leftArrow  = '←';
+        const rightArrow = '→';
         const leftLabel  = isSwapped
             ? (locale === 'ja' ? 'コメント' : 'Chat')
             : (locale === 'ja' ? '配信管理' : 'Streams');
