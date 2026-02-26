@@ -1,5 +1,5 @@
 import React, { useState, useRef, useCallback, useMemo } from 'react';
-import { EyeOff, Eye, Check, X, Clock, GripVertical } from 'lucide-react';
+import { EyeOff, Eye, Plus, X, Clock, GripVertical } from 'lucide-react';
 import type { Stream } from '../types';
 import type { Locale } from '../i18n';
 import type { HistoryEntry } from '../hooks/useStreamHistory';
@@ -38,15 +38,9 @@ const StreamSidePanel: React.FC<StreamSidePanelProps> = ({
         hideTimerRef.current = setTimeout(() => setVisible(false), 300);
     }, []);
 
-    const visibleStreams = useMemo(() => streams.filter(s => !s.hidden), [streams]);
-    const hiddenStreams = useMemo(() => streams.filter(s => s.hidden), [streams]);
     const activeSourceIds = useMemo(() => new Set(streams.map(s => `${s.type}:${s.sourceId}`)), [streams]);
     const availableHistory = useMemo(
         () => history.filter(e => !activeSourceIds.has(`${e.type}:${e.sourceId}`)),
-        [history, activeSourceIds],
-    );
-    const addedHistory = useMemo(
-        () => history.filter(e => activeSourceIds.has(`${e.type}:${e.sourceId}`)),
         [history, activeSourceIds],
     );
 
@@ -108,33 +102,34 @@ const StreamSidePanel: React.FC<StreamSidePanelProps> = ({
                 <div className="side-panel-header">
                     <span className="side-panel-title">{label('配信管理', 'Streams')}</span>
                     <span className="side-panel-count">
-                        {label(`表示 ${visibleStreams.length} / 非表示 ${hiddenStreams.length}`,
-                               `${visibleStreams.length} visible / ${hiddenStreams.length} hidden`)}
+                        {(() => {
+                            const hiddenCount = streams.filter(s => s.hidden).length;
+                            return label(
+                                `${streams.length}件${hiddenCount > 0 ? `（うち${hiddenCount}非表示）` : ''}`,
+                                `${streams.length} stream${streams.length !== 1 ? 's' : ''}${hiddenCount > 0 ? ` (${hiddenCount} hidden)` : ''}`,
+                            );
+                        })()}
                     </span>
                 </div>
 
                 <div className="side-panel-list">
-                    {/* ── 表示中 ── */}
-                    {visibleStreams.length > 0 && (
-                        <div className="side-panel-section-label">{label('表示中', 'Visible')}</div>
+                    {/* ── 追加済セクション ── */}
+                    {streams.length > 0 && (
+                        <div className="side-panel-section-label">{label('追加済', 'Active')}</div>
                     )}
-                    {visibleStreams.map(stream => renderStreamItem(stream, false))}
+                    {streams.map(stream => renderStreamItem(stream, !!stream.hidden))}
 
-                    {/* ── 非表示 ── */}
-                    {hiddenStreams.length > 0 && (
-                        <div className="side-panel-section-label">{label('非表示', 'Hidden')}</div>
+                    {streams.length === 0 && (
+                        <div className="side-panel-empty">{label('配信なし', 'No streams')}</div>
                     )}
-                    {hiddenStreams.map(stream => renderStreamItem(stream, true))}
 
-                    {/* ── 履歴 ── */}
-                    {(availableHistory.length > 0 || addedHistory.length > 0) && (
+                    {/* ── 履歴セクション ── */}
+                    {availableHistory.length > 0 && (
                         <div className="side-panel-section-label">
                             <Clock size={10} style={{ marginRight: 4, verticalAlign: 'middle' }} />
                             {label('履歴', 'History')}
                         </div>
                     )}
-
-                    {/* 未追加の履歴: タイトルクリックで追加 */}
                     {availableHistory.map(entry => {
                         const isHistDragging = draggingHistoryId === entry.historyId;
                         const isHistTarget = dragOverHistoryId === entry.historyId && draggingHistoryId !== entry.historyId;
@@ -153,13 +148,14 @@ const StreamSidePanel: React.FC<StreamSidePanelProps> = ({
                                     <GripVertical size={12} />
                                 </button>
                                 <span className={`platform-dot ${entry.type}`} style={{ flexShrink: 0 }} />
-                                <span
-                                    className="side-panel-item-title side-panel-item-title--clickable"
-                                    title={entry.title}
+                                <span className="side-panel-item-title" title={entry.title}>{entry.title}</span>
+                                <button
+                                    className="side-panel-toggle-btn"
                                     onClick={() => onAddFromHistory(entry)}
+                                    title={label('追加', 'Add')}
                                 >
-                                    {entry.title}
-                                </span>
+                                    <Plus size={13} />
+                                </button>
                                 <button
                                     className="side-panel-toggle-btn danger"
                                     onClick={() => onRemoveFromHistory(entry.historyId)}
@@ -170,46 +166,6 @@ const StreamSidePanel: React.FC<StreamSidePanelProps> = ({
                             </div>
                         );
                     })}
-
-                    {/* 追加済みの履歴: 末尾・取り消し線・チェックアイコン */}
-                    {addedHistory.map(entry => {
-                        const isHistDragging = draggingHistoryId === entry.historyId;
-                        const isHistTarget = dragOverHistoryId === entry.historyId && draggingHistoryId !== entry.historyId;
-                        const histCls = [
-                            'side-panel-item is-history is-added',
-                            isHistDragging ? 'is-dragging-item' : '',
-                            isHistTarget ? 'is-drag-target' : '',
-                        ].filter(Boolean).join(' ');
-                        return (
-                            <div key={entry.historyId} className={histCls} data-history-id={entry.historyId}>
-                                <button
-                                    className="side-panel-drag-handle"
-                                    onMouseDown={(e) => handleHistoryMouseDown(e, entry.historyId)}
-                                    title={label('ドラッグして並べ替え', 'Drag to reorder')}
-                                >
-                                    <GripVertical size={12} />
-                                </button>
-                                <span className={`platform-dot ${entry.type}`} style={{ flexShrink: 0 }} />
-                                <span className="side-panel-item-title" title={entry.title}>
-                                    {entry.title}
-                                </span>
-                                <span className="side-panel-added-check" title={label('追加済み', 'Already added')}>
-                                    <Check size={11} />
-                                </span>
-                                <button
-                                    className="side-panel-toggle-btn danger"
-                                    onClick={() => onRemoveFromHistory(entry.historyId)}
-                                    title={label('履歴から削除', 'Remove from history')}
-                                >
-                                    <X size={11} />
-                                </button>
-                            </div>
-                        );
-                    })}
-
-                    {streams.length === 0 && availableHistory.length === 0 && addedHistory.length === 0 && (
-                        <div className="side-panel-empty">{label('配信なし', 'No streams')}</div>
-                    )}
                 </div>
             </div>
         </>
