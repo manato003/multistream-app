@@ -4,6 +4,7 @@ import './index.css';
 import './side-panel.css';
 import StreamGrid from './components/StreamGrid';
 import StreamSidePanel from './components/StreamSidePanel';
+import ChatSidePanel from './components/ChatSidePanel';
 import AddStreamModal from './components/AddStreamModal';
 import ShareModal from './components/ShareModal';
 import HelpModal from './components/HelpModal';
@@ -236,6 +237,7 @@ function App() {
           onHide={handleToggleHidden}
           onUpdateSourceId={handleUpdateSourceId}
         />
+        <ChatSidePanel streams={streams} locale={locale} />
       </main>
 
       {isAddModalOpen && (
