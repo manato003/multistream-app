@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, ExternalLink, RefreshCw, GripVertical, EyeOff, Loader } from 'lucide-react';
+import { X, ExternalLink, RefreshCw, GripVertical, EyeOff, Loader, WifiOff } from 'lucide-react';
 import type { Stream } from '../types';
 import TwitchPlayer from './TwitchPlayer';
 import YouTubePlayer from './YouTubePlayer';
@@ -19,7 +19,7 @@ interface StreamFrameProps {
     isDragging: boolean;
     isDragTarget: boolean;
     onHide: (id: string) => void;
-    onUpdateSourceId: (id: string, newSourceId: string) => void;
+    onUpdateSourceId: (id: string, newSourceId: string, isLive: boolean) => void;
 }
 
 const StreamFrame: React.FC<StreamFrameProps> = React.memo(({
@@ -57,8 +57,8 @@ const StreamFrame: React.FC<StreamFrameProps> = React.memo(({
         if (stream.type === 'youtube' && stream.inputType === 'channel') {
             setIsResolving(true);
             try {
-                const { videoId } = await resolveYouTubeChannel(stream.sourceId, true);
-                onUpdateSourceId(stream.id, videoId);
+                const { videoId, isLive } = await resolveYouTubeChannel(stream.channelHandle ?? stream.sourceId, true);
+                onUpdateSourceId(stream.id, videoId, isLive);
                 setReloadKey(k => k + 1);
             } catch (err) {
                 console.warn('[StreamFrame] reload resolve failed, keeping current stream:', err);
@@ -113,7 +113,15 @@ const StreamFrame: React.FC<StreamFrameProps> = React.memo(({
             </div>
 
             <div className="stream-content">
-                {stream.type === 'twitch' ? (
+                {stream.type === 'youtube' && stream.isLive === false ? (
+                    <div className="stream-offline">
+                        <WifiOff size={28} />
+                        <span className="stream-offline-title">{stream.title}</span>
+                        <span className="stream-offline-msg">
+                            {locale === 'ja' ? '現在ライブ配信していません' : 'Not currently live'}
+                        </span>
+                    </div>
+                ) : stream.type === 'twitch' ? (
                     <TwitchPlayer
                         key={reloadKey}
                         channel={stream.inputType === 'channel' ? stream.sourceId : undefined}

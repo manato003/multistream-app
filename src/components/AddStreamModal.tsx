@@ -64,10 +64,11 @@ const AddStreamModal: React.FC<AddStreamModalProps> = ({ onClose, onAdd, locale,
             setResolving(true);
             console.log('[AddStreamModal] Resolving YouTube channel:', parsed.sourceId);
             try {
-                const { videoId } = await resolveYouTubeChannel(parsed.sourceId);
-                console.log('[AddStreamModal] ✓ Resolved to videoId:', videoId);
-                // Treat resolved live stream as a video (not channel) so YouTubePlayer uses /embed/VIDEO_ID
-                onAdd(buildStream(type, { ...parsed, sourceId: videoId, title: parsed.title, inputType: 'video' }));
+                const { videoId, isLive } = await resolveYouTubeChannel(parsed.sourceId);
+                const stream = isLive
+                    ? buildStream(type, { ...parsed, sourceId: videoId, inputType: 'video' })
+                    : buildStream(type, { ...parsed, sourceId: parsed.sourceId, inputType: 'channel' });
+                onAdd({ ...stream, isLive, channelHandle: parsed.sourceId });
                 setSingleInput('');
                 singleInputRef.current?.focus();
             } catch (err) {

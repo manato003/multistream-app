@@ -5,14 +5,15 @@
  *   1. Fetch youtube.com/@handle/live via CORS proxy
  *   2. Extract video ID from <link rel="canonical">
  *   3. Accept ONLY if "isLiveNow":true is present (rejects scheduled streams)
- *   4. If not currently live, fall back to youtube.com/@handle/videos (latest upload)
+ *   4. Not live → return isLive: false (show offline screen, no fallback to videos)
  *
  * No API key or backend required.
- * Live video IDs are cached for 5 minutes; non-live IDs indefinitely.
+ * Live video IDs are cached for 5 minutes.
  */
 
 const CACHE_PREFIX = 'yt_resolved_';
-const LIVE_TTL_MS = 5 * 60 * 1000; // 5 min
+const LIVE_TTL_MS = 5 * 60 * 1000;      // ライブID: 5分
+const OFFLINE_TTL_MS = 2 * 60 * 1000;   // オフライン判定: 2分（頻繁に再チェックしない）
 
 interface CacheEntry {
     videoId: string;
@@ -25,8 +26,8 @@ function getCache(key: string): CacheEntry | null {
         const raw = localStorage.getItem(CACHE_PREFIX + key);
         if (!raw) return null;
         const entry: CacheEntry = JSON.parse(raw);
-        // Live IDs expire after 5 min; non-live cached indefinitely
-        if (entry.isLive && Date.now() - entry.ts > LIVE_TTL_MS) return null;
+        const ttl = entry.isLive ? LIVE_TTL_MS : OFFLINE_TTL_MS;
+        if (Date.now() - entry.ts > ttl) return null;
         return entry;
     } catch { return null; }
 }
@@ -69,24 +70,6 @@ function extractVideoIdFromCanonical(html: string): string | null {
     return m ? m[1] : null;
 }
 
-function extractLatestVideoId(html: string): string | null {
-    // Method 1: Look for videoId in ytInitialData
-    const ytDataMatch = html.match(/"videoId":"([a-zA-Z0-9_-]{11})"/);
-    if (ytDataMatch) {
-        console.log(`[extractLatestVideoId] Found via ytInitialData: ${ytDataMatch[1]}`);
-        return ytDataMatch[1];
-    }
-    
-    // Method 2: Look for /watch?v= links
-    const watchMatch = html.match(/\/watch\?v=([a-zA-Z0-9_-]{11})/);
-    if (watchMatch) {
-        console.log(`[extractLatestVideoId] Found via watch link: ${watchMatch[1]}`);
-        return watchMatch[1];
-    }
-    
-    return null;
-}
-
 function checkIsLive(html: string): boolean {
     return /"isLiveNow"\s*:\s*true/.test(html);
 }
@@ -119,37 +102,18 @@ export async function resolveYouTubeChannel(handle: string, forceRefresh = false
         const isLive = checkIsLive(html);
         if (videoId && isLive) {
             setCache(cacheKey, videoId, true);
-            console.log(`[resolveYouTubeChannel] ✓ Found active live via /live: ${videoId}`);
+            console.log(`[resolveYouTubeChannel] ✓ Live: ${videoId}`);
             return { videoId, isLive: true };
         }
-        if (videoId && !isLive) {
-            console.log(`[resolveYouTubeChannel] /live returned a video but isLiveNow=false (scheduled?), skipping`);
-        }
-        if (!videoId) {
-            console.warn(`[resolveYouTubeChannel] /live page loaded but no canonical URL found`);
-        }
+        // ライブ中でない（予定配信 or オフライン）
+        console.log(`[resolveYouTubeChannel] Not live (isLiveNow=false or no canonical)`);
+        setCache(cacheKey, '', false);
+        return { videoId: '', isLive: false };
     } catch (err) {
         console.warn(`[resolveYouTubeChannel] /live fetch failed:`, err);
     }
 
-    // Step 2: fall back to channel /videos page (latest uploads, not recommended videos)
-    try {
-        const videosUrl = `https://www.youtube.com/@${cleanHandle}/videos`;
-        const html = await fetchViaProxy(videosUrl);
-        
-        // Extract first video ID from the videos page
-        const videoId = extractLatestVideoId(html);
-        
-        if (videoId) {
-            const isLive = false; // Videos page shows uploads, not live streams
-            setCache(cacheKey, videoId, isLive);
-            console.log(`[resolveYouTubeChannel] ✓ Found via /videos page: ${videoId}`);
-            return { videoId, isLive };
-        }
-        console.warn(`[resolveYouTubeChannel] Videos page loaded but no video ID found`);
-    } catch (err) {
-        console.warn(`[resolveYouTubeChannel] Videos page fetch failed:`, err);
-    }
-
-    throw new Error(`@${cleanHandle} が見つかりませんでした。チャンネル名が正しいか確認してください（大文字小文字も区別されます）。`);
+    // プロキシ失敗時もオフライン扱い
+    setCache(cacheKey, '', false);
+    return { videoId: '', isLive: false };
 }

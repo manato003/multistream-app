@@ -71,12 +71,15 @@ function App() {
   };
 
   const handleAddFromHistory = useCallback(async (entry: HistoryEntry) => {
-    // YouTubeチャンネルは最新のvideo IDを取得してから追加
     let sourceId = entry.sourceId;
+    let inputType = entry.inputType;
+    let isLive: boolean | undefined;
     if (entry.type === 'youtube' && entry.inputType === 'channel') {
       try {
-        const { videoId } = await resolveYouTubeChannel(entry.sourceId, true);
-        sourceId = videoId;
+        const result = await resolveYouTubeChannel(entry.sourceId, true);
+        isLive = result.isLive;
+        sourceId = result.isLive ? result.videoId : entry.sourceId;
+        inputType = result.isLive ? 'video' : 'channel';
       } catch (err) {
         console.warn('[App] history add resolve failed:', err);
       }
@@ -86,7 +89,9 @@ function App() {
       type: entry.type,
       title: entry.title,
       sourceId,
-      inputType: entry.inputType === 'channel' ? 'video' : entry.inputType,
+      inputType,
+      isLive,
+      channelHandle: entry.type === 'youtube' && entry.inputType === 'channel' ? entry.sourceId : undefined,
     };
     setStreams(prev => [...prev, stream]);
   }, []);
@@ -95,25 +100,31 @@ function App() {
     setStreams(prev => prev.map(s => s.id === id ? { ...s, hidden: !s.hidden } : s));
   }, []);
 
-  const handleUpdateSourceId = useCallback((id: string, newSourceId: string) => {
-    setStreams(prev => prev.map(s => s.id === id ? { ...s, sourceId: newSourceId } : s));
+  const handleUpdateSourceId = useCallback((id: string, newSourceId: string, isLive: boolean) => {
+    setStreams(prev => prev.map(s =>
+      s.id === id
+        ? { ...s, sourceId: isLive ? newSourceId : s.channelHandle ?? s.sourceId, inputType: isLive ? 'video' : 'channel', isLive }
+        : s
+    ));
   }, []);
 
   // 起動時：全YouTubeチャンネル枠のvideo IDをバックグラウンドで再取得
   useEffect(() => {
     const refreshAll = async () => {
       setStreams(prev => {
-        const youtubeChannels = prev.filter(s => s.type === 'youtube' && s.inputType === 'channel');
+        const youtubeChannels = prev.filter(s => s.type === 'youtube' && s.channelHandle);
         if (youtubeChannels.length === 0) return prev;
-        // 非同期で各チャンネルを解決して順次更新
         youtubeChannels.forEach(async (stream) => {
           try {
-            const { videoId } = await resolveYouTubeChannel(stream.sourceId, true);
+            const handle = stream.channelHandle!;
+            const { videoId, isLive } = await resolveYouTubeChannel(handle, true);
             setStreams(cur => cur.map(s =>
-              s.id === stream.id ? { ...s, sourceId: videoId } : s
+              s.id === stream.id
+                ? { ...s, sourceId: isLive ? videoId : handle, inputType: isLive ? 'video' : 'channel', isLive }
+                : s
             ));
           } catch (err) {
-            console.warn(`[App] startup refresh failed for ${stream.sourceId}:`, err);
+            console.warn(`[App] startup refresh failed for ${stream.channelHandle}:`, err);
           }
         });
         return prev;
@@ -121,7 +132,7 @@ function App() {
     };
     refreshAll();
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []); // 起動時1回のみ
+  }, []);
 
   const handleApplyConfig = (newStreams: Stream[]) => {
     setStreams(newStreams);

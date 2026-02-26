@@ -11,7 +11,7 @@ interface StreamGridProps {
     globalTime: number;
     locale: Locale;
     onHide: (id: string) => void;
-    onUpdateSourceId: (id: string, newSourceId: string) => void;
+    onUpdateSourceId: (id: string, newSourceId: string, isLive: boolean) => void;
 }
 
 function calcOptimalGrid(count: number, vpW: number, vpH: number) {
