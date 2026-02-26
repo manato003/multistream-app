@@ -113,7 +113,15 @@ const StreamFrame: React.FC<StreamFrameProps> = React.memo(({
             </div>
 
             <div className="stream-content">
-                {stream.type === 'youtube' && stream.isLive === false ? (
+                {stream.isResolving ? (
+                    <div className="stream-offline">
+                        <Loader size={28} className="spin" />
+                        <span className="stream-offline-title">{stream.title}</span>
+                        <span className="stream-offline-msg">
+                            {locale === 'ja' ? 'ライブ確認中...' : 'Checking live status...'}
+                        </span>
+                    </div>
+                ) : stream.type === 'youtube' && stream.isLive === false ? (
                     <div className="stream-offline">
                         <WifiOff size={28} />
                         <span className="stream-offline-title">{stream.title}</span>

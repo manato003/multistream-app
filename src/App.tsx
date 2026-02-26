@@ -71,29 +71,41 @@ function App() {
   };
 
   const handleAddFromHistory = useCallback(async (entry: HistoryEntry) => {
-    let sourceId = entry.sourceId;
-    let inputType = entry.inputType;
-    let isLive: boolean | undefined;
+    const streamId = crypto.randomUUID();
+
     if (entry.type === 'youtube' && entry.inputType === 'channel') {
+      // 即時追加（ローディング状態）→ バックグラウンドで解決
+      setStreams(prev => [...prev, {
+        id: streamId,
+        type: 'youtube',
+        title: entry.title,
+        sourceId: entry.sourceId,
+        inputType: 'channel',
+        channelHandle: entry.sourceId,
+        isResolving: true,
+      }]);
       try {
         const result = await resolveYouTubeChannel(entry.sourceId);
-        isLive = result.isLive;
-        sourceId = result.isLive ? result.videoId : entry.sourceId;
-        inputType = result.isLive ? 'video' : 'channel';
+        setStreams(prev => prev.map(s => s.id === streamId ? {
+          ...s,
+          sourceId: result.isLive ? result.videoId : entry.sourceId,
+          inputType: result.isLive ? 'video' : 'channel',
+          isLive: result.isLive,
+          isResolving: false,
+        } : s));
       } catch (err) {
         console.warn('[App] history add resolve failed:', err);
+        setStreams(prev => prev.map(s => s.id === streamId ? { ...s, isResolving: false } : s));
       }
+    } else {
+      setStreams(prev => [...prev, {
+        id: streamId,
+        type: entry.type,
+        title: entry.title,
+        sourceId: entry.sourceId,
+        inputType: entry.inputType,
+      }]);
     }
-    const stream: Stream = {
-      id: crypto.randomUUID(),
-      type: entry.type,
-      title: entry.title,
-      sourceId,
-      inputType,
-      isLive,
-      channelHandle: entry.type === 'youtube' && entry.inputType === 'channel' ? entry.sourceId : undefined,
-    };
-    setStreams(prev => [...prev, stream]);
   }, []);
 
   const handleReorder = useCallback((fromId: string, toId: string) => {
