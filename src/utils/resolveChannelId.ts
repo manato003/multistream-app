@@ -61,6 +61,27 @@ export interface ResolveResult {
 }
 
 /**
+ * Resolve a YouTube video ID to the channel handle.
+ * Uses allorigins proxy (codetabs returns bot-detection page for /watch URLs).
+ * @param videoId - 11-char YouTube video ID
+ * @returns channel handle without @ (e.g. "tbsnewsdig"), or null if resolution fails
+ */
+export async function resolveVideoToChannel(videoId: string): Promise<string | null> {
+    try {
+        const watchUrl = `https://www.youtube.com/watch?v=${videoId}`;
+        const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(watchUrl)}`;
+        const res = await fetch(proxyUrl);
+        if (!res.ok) return null;
+        const html = await res.text();
+        if (html.length < 1000) return null;
+        const m = html.match(/"canonicalBaseUrl"\s*:\s*"\/@([^"]+)"/);
+        return m ? m[1] : null;
+    } catch {
+        return null;
+    }
+}
+
+/**
  * Resolve a YouTube channel handle to a live video ID.
  * @param handle - e.g. "@Popo_Ieiri" or "Popo_Ieiri"
  */

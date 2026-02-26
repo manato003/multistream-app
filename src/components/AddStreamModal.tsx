@@ -4,7 +4,7 @@ import type { Stream } from '../types';
 import { t } from '../i18n';
 import type { Locale } from '../i18n';
 import { parseTwitchInput, parseYouTubeInput } from '../utils/parseInput';
-import { resolveYouTubeChannel } from '../utils/resolveChannelId';
+import { resolveYouTubeChannel, resolveVideoToChannel } from '../utils/resolveChannelId';
 
 interface AddStreamModalProps {
     onClose: () => void;
@@ -25,6 +25,11 @@ function detectPlatformFromUrl(url: string) {
         return { type: 'youtube' as const, parsed: parseYouTubeInput(normalized) };
     }
     return null;
+}
+
+function normalizeHandle(h: string | undefined): string {
+    if (!h) return '';
+    return h.startsWith('@') ? h.slice(1) : h;
 }
 
 function buildStream(type: 'twitch' | 'youtube', parsed: ReturnType<typeof parseTwitchInput>): Stream {
@@ -55,24 +60,23 @@ const AddStreamModal: React.FC<AddStreamModalProps> = ({ onClose, onAdd, locale,
         const type = detected?.type ?? 'twitch';
         const parsed = detected?.parsed ?? parseTwitchInput(val);
 
-        console.log('[AddStreamModal] Input:', val);
-        console.log('[AddStreamModal] Detected:', detected);
-        console.log('[AddStreamModal] Type:', type, 'Parsed:', parsed);
-
-        // If YouTube channel handle, resolve to live video ID first
+        // ── YouTube channel handle (@xxx) ──────────────────────────────
         if (type === 'youtube' && parsed.inputType === 'channel') {
+            const handle = parsed.sourceId; // without @
+            if (addedStreams.some(s => s.type === 'youtube' && normalizeHandle(s.channelHandle) === handle)) {
+                setResolveError(locale === 'ja' ? 'このチャンネルはすでに追加されています' : 'This channel is already added');
+                return;
+            }
             setResolving(true);
-            console.log('[AddStreamModal] Resolving YouTube channel:', parsed.sourceId);
             try {
-                const { videoId, isLive } = await resolveYouTubeChannel(parsed.sourceId);
+                const { videoId, isLive } = await resolveYouTubeChannel(handle);
                 const stream = isLive
                     ? buildStream(type, { ...parsed, sourceId: videoId, inputType: 'video' })
-                    : buildStream(type, { ...parsed, sourceId: parsed.sourceId, inputType: 'channel' });
-                onAdd({ ...stream, isLive, channelHandle: parsed.sourceId });
+                    : buildStream(type, { ...parsed, sourceId: handle, inputType: 'channel' });
+                onAdd({ ...stream, isLive, channelHandle: handle });
                 setSingleInput('');
                 singleInputRef.current?.focus();
             } catch (err) {
-                console.error('[AddStreamModal] ✗ Resolution failed:', err);
                 setResolveError(err instanceof Error ? err.message : 'チャンネルIDの取得に失敗しました');
             } finally {
                 setResolving(false);
@@ -80,7 +84,34 @@ const AddStreamModal: React.FC<AddStreamModalProps> = ({ onClose, onAdd, locale,
             return;
         }
 
-        console.log('[AddStreamModal] Adding stream directly (no resolution needed)');
+        // ── YouTube video URL ──────────────────────────────────────────
+        if (type === 'youtube' && parsed.inputType === 'video') {
+            if (addedStreams.some(s => s.type === 'youtube' && s.sourceId === parsed.sourceId)) {
+                setResolveError(locale === 'ja' ? 'この動画はすでに追加されています' : 'This video is already added');
+                return;
+            }
+            setResolving(true);
+            try {
+                const handle = await resolveVideoToChannel(parsed.sourceId);
+                if (handle && addedStreams.some(s => s.type === 'youtube' && normalizeHandle(s.channelHandle) === handle)) {
+                    setResolveError(locale === 'ja' ? 'このチャンネルはすでに追加されています' : 'This channel is already added');
+                    return;
+                }
+                const title = handle ? `@${handle}` : parsed.sourceId;
+                onAdd(buildStream(type, { ...parsed, title }));
+                setSingleInput('');
+                singleInputRef.current?.focus();
+            } finally {
+                setResolving(false);
+            }
+            return;
+        }
+
+        // ── Twitch / other ─────────────────────────────────────────────
+        if (addedStreams.some(s => s.type === type && s.sourceId === parsed.sourceId)) {
+            setResolveError(locale === 'ja' ? 'この配信はすでに追加されています' : 'This stream is already added');
+            return;
+        }
         onAdd(buildStream(type, parsed));
         setSingleInput('');
         singleInputRef.current?.focus();
