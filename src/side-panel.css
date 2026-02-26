@@ -290,6 +290,31 @@
   padding: 4px 8px;
 }
 
+/* 折りたたみセレクター */
+.chat-panel-selector.collapsed {
+  padding: 4px 6px;
+}
+
+.chat-selector-active {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 5px 8px;
+  background: rgba(139, 92, 246, 0.15);
+  border: none;
+  cursor: pointer;
+  border-radius: 4px;
+  text-align: left;
+  color: var(--text-primary);
+  font-size: 0.75rem;
+  width: 100%;
+  transition: background 0.1s;
+}
+
+.chat-selector-active:hover {
+  background: rgba(139, 92, 246, 0.25);
+}
+
 /* チャット iframe エリア */
 .chat-panel-content {
   flex: 1;

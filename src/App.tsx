@@ -25,6 +25,7 @@ function App() {
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
   const [isHelpModalOpen, setIsHelpModalOpen] = useState(false);
   const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
+  const [isChatOpen, setIsChatOpen] = useState(false);
   const [streams, setStreams] = useState<Stream[]>([]);
   const [headerVisible, setHeaderVisible] = useState(false);
   const headerVisibleRef = useRef(false);
@@ -216,7 +217,7 @@ function App() {
         </div>
       </header>
 
-      <main className="app-main">
+      <main className={`app-main${isChatOpen ? ' chat-open' : ''}`}>
         <StreamSidePanel
           streams={streams}
           onToggleHidden={handleToggleHidden}
@@ -237,7 +238,13 @@ function App() {
           onHide={handleToggleHidden}
           onUpdateSourceId={handleUpdateSourceId}
         />
-        <ChatSidePanel streams={streams} locale={locale} />
+        <ChatSidePanel
+            streams={streams}
+            locale={locale}
+            isOpen={isChatOpen}
+            onOpen={() => setIsChatOpen(true)}
+            onClose={() => setIsChatOpen(false)}
+          />
       </main>
 
       {isAddModalOpen && (

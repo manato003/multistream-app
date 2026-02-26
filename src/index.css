@@ -157,6 +157,12 @@ body {
   align-items: stretch;
   justify-content: stretch;
   background: #000;
+  padding-right: 0;
+  transition: padding-right 0.2s ease;
+}
+
+.app-main.chat-open {
+  padding-right: 280px;
 }
 
 /* ===== Grid ===== */
