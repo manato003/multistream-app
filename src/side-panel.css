@@ -26,6 +26,7 @@
   pointer-events: none;
   display: flex;
   flex-direction: column;
+  padding-top: 36px; /* ヘッダーとの重なりを防ぐ */
 }
 
 .side-panel.visible {
@@ -185,6 +186,7 @@
   pointer-events: none;
   display: flex;
   flex-direction: column;
+  padding-top: 36px; /* ヘッダーとの重なりを防ぐ */
 }
 
 .chat-panel.visible {

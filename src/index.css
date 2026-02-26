@@ -64,7 +64,7 @@ body {
   backdrop-filter: blur(12px);
   border-bottom: 2px solid transparent;
   border-image: linear-gradient(to right, #8b5cf6, #ec4899) 1;
-  z-index: 999;
+  z-index: 1001;
   transform: translateY(calc(-100% + 2px));
   transition: transform 0.2s ease;
   pointer-events: none;
@@ -194,13 +194,41 @@ body {
 .stream-grid-empty {
   display: flex;
   align-items: center;
-  justify-content: center;
+  justify-content: space-between;
   width: 100%;
   height: 100%;
   color: var(--text-secondary);
   font-size: 0.95rem;
   text-align: center;
-  padding: 20px;
+  padding: 0 48px;
+}
+
+.empty-hint-side {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  color: var(--text-secondary);
+  opacity: 0.4;
+  user-select: none;
+}
+
+.empty-hint-arrow {
+  font-size: 1.8rem;
+  line-height: 1;
+}
+
+.empty-hint-label {
+  font-size: 0.72rem;
+  letter-spacing: 0.03em;
+}
+
+.empty-hint-center {
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+  text-align: center;
+  flex: 1;
+  padding: 0 24px;
 }
 
 .stream-grid-cell {

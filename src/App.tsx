@@ -218,8 +218,8 @@ function App() {
         className={`app-header ${headerVisible ? 'visible' : ''}`}
         onMouseEnter={showHeader}
       >
-        {/* Left: title */}
-        <div className="app-title">
+        {/* Left: title (クリックでリロード) */}
+        <div className="app-title" onClick={() => window.location.reload()} style={{ cursor: 'pointer' }}>
           <MonitorPlay size={16} color="var(--accent)" />
           <span>{t(locale, 'appTitle')}</span>
         </div>
@@ -286,6 +286,7 @@ function App() {
           locale={locale}
           onHide={handleToggleHidden}
           onUpdateSourceId={handleUpdateSourceId}
+          panelLayout={settings.panelLayout}
         />
         <ChatSidePanel
             streams={streams}

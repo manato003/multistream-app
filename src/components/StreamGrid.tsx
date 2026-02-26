@@ -12,6 +12,7 @@ interface StreamGridProps {
     locale: Locale;
     onHide: (id: string) => void;
     onUpdateSourceId: (id: string, newSourceId: string, isLive: boolean) => void;
+    panelLayout?: 'default' | 'swapped';
 }
 
 function calcOptimalGrid(count: number, vpW: number, vpH: number) {
@@ -35,7 +36,7 @@ function calcOptimalGrid(count: number, vpW: number, vpH: number) {
     return { cols: bestCols, rows: Math.ceil(count / bestCols) };
 }
 
-const StreamGrid: React.FC<StreamGridProps> = ({ streams, setStreams, isArchiveMode, globalTime, locale, onHide, onUpdateSourceId }) => {
+const StreamGrid: React.FC<StreamGridProps> = ({ streams, setStreams, isArchiveMode, globalTime, locale, onHide, onUpdateSourceId, panelLayout }) => {
     const [expandedId, setExpandedId] = useState<string | null>(null);
     const [draggingId, setDraggingId] = useState<string | null>(null);
     const [dragOverId, setDragOverId] = useState<string | null>(null);
@@ -143,9 +144,24 @@ const StreamGrid: React.FC<StreamGridProps> = ({ streams, setStreams, isArchiveM
 
     // ── Render ───────────────────────────────────────────────────────────────
     if (streams.length === 0) {
+        const isSwapped = panelLayout === 'swapped';
+        const leftLabel  = isSwapped
+            ? (locale === 'ja' ? 'コメント' : 'Chat')
+            : (locale === 'ja' ? '配信管理' : 'Streams');
+        const rightLabel = isSwapped
+            ? (locale === 'ja' ? '配信管理' : 'Streams')
+            : (locale === 'ja' ? 'コメント' : 'Chat');
         return (
             <div className="stream-grid-empty">
-                <p>{t(locale, 'noStreams')}</p>
+                <div className="empty-hint-side">
+                    <span className="empty-hint-arrow">←</span>
+                    <span className="empty-hint-label">{leftLabel}</span>
+                </div>
+                <p className="empty-hint-center">{t(locale, 'noStreams')}</p>
+                <div className="empty-hint-side">
+                    <span className="empty-hint-label">{rightLabel}</span>
+                    <span className="empty-hint-arrow">→</span>
+                </div>
             </div>
         );
     }

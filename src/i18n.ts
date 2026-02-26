@@ -45,7 +45,7 @@ const en: Translations = {
     toggleTheme: 'Toggle Theme',
     saveLayout: 'Save Layout',
     layoutSaved: 'Layout auto-saves to LocalStorage!',
-    noStreams: 'No streams added. Move mouse to top to open menu.',
+    noStreams: 'Hover top edge to add streams',
     syncTime: 'Sync Time (VODs)',
     modalTitle: 'Add Stream',
     platform: 'Platform',
@@ -73,7 +73,7 @@ const en: Translations = {
     importPlaceholder: 'Paste layout code here...',
     help: 'Help Guide',
     helpTitle: 'How to use Multistream Nexus',
-    guideText: '• Move mouse to Top to open Menu\n• Drag handle (⋮⋮) to reorder streams\n• Double-click stream to expand/restore\n• Settings are saved to LocalStorage\n• Use "Share Layout" to copy/paste your setup',
+    guideText: '• Hover top edge → Menu (add streams, settings, share)\n• Hover left edge → Stream panel (reorder, show/hide, history)\n• Chat icon in header → Toggle chat panel (state saved across sessions)\n• Double-click stream → Fullscreen / restore\n• Drag handle (⋮⋮) to reorder streams or history\n• Paste a share code in bulk input to load streams\n• Settings (⚙) to swap panel sides',
 };
 
 const ja: Translations = {
@@ -83,7 +83,7 @@ const ja: Translations = {
     toggleTheme: 'テーマ切替',
     saveLayout: 'レイアウト保存',
     layoutSaved: 'レイアウトはLocalStorageに自動保存されています！',
-    noStreams: '配信が追加されていません。画面上端にマウスを移動してメニューを開いてください。',
+    noStreams: '画面上端にホバーして配信を追加',
     syncTime: '同期時間',
     modalTitle: '配信を追加',
     platform: 'プラットフォーム',
@@ -111,7 +111,7 @@ const ja: Translations = {
     importPlaceholder: 'ここにレイアウトコードを貼り付けてください...',
     help: '操作ガイド',
     helpTitle: 'Multistream Nexus の使い方',
-    guideText: '・画面上端にマウス移動でメニュー表示\n・ハンドル(⋮⋮)をドラッグして配信を並べ替え\n・配信枠をダブルクリックで全画面拡大/復帰\n・設定はブラウザ(LocalStorage)に自動保存されます\n・「共有・読込」から現在の構成をコードで保存・共有できます',
+    guideText: '・画面上端にホバー → メニュー（配信追加・設定・共有）\n・画面左端にホバー → 配信管理パネル（並べ替え・表示切替・履歴）\n・ヘッダーのコメントアイコン → チャットパネルの開閉（状態はセッション跨いで保存）\n・配信枠をダブルクリック → 全画面拡大 / 復帰\n・ハンドル(⋮⋮)をドラッグして配信・履歴を並べ替え\n・まとめて追加欄に共有コードを貼り付けて読み込み可\n・設定(⚙)でパネルの左右配置を入れ替え可',
 };
 
 export const translations: Record<Locale, Translations> = { en, ja };

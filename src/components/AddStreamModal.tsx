@@ -31,6 +31,18 @@ function normalizeHandle(h: string | undefined): string {
     return h.startsWith('@') ? h.slice(1) : h;
 }
 
+function tryDecodeShareCode(code: string): Omit<Stream, 'id'>[] | null {
+    try {
+        const decoded = JSON.parse(decodeURIComponent(atob(code.trim())));
+        if (Array.isArray(decoded) && decoded.every((s: unknown) =>
+            typeof s === 'object' && s !== null && 'type' in s && 'sourceId' in s
+        )) {
+            return decoded as Omit<Stream, 'id'>[];
+        }
+        return null;
+    } catch { return null; }
+}
+
 function buildStream(type: 'twitch' | 'youtube', parsed: ReturnType<typeof parseTwitchInput>): Stream {
     return {
         id: crypto.randomUUID(),
@@ -111,7 +123,23 @@ const AddStreamModal: React.FC<AddStreamModalProps> = ({ onClose, onAdd, locale,
 
     // ── Bulk add ──────────────────────────────────────────────────────────
     const addBulk = () => {
-        const lines = bulkInput.split('\n').map(l => l.trim()).filter(Boolean);
+        const raw = bulkInput.trim();
+        if (!raw) return;
+
+        // Single line with no newlines → try share code decode first
+        if (!raw.includes('\n')) {
+            const shareStreams = tryDecodeShareCode(raw);
+            if (shareStreams) {
+                shareStreams.forEach(s => onAdd({ ...s, id: crypto.randomUUID() }));
+                setBulkInput('');
+                setBulkResults({ ok: shareStreams.length, fail: 0 });
+                setTimeout(() => setBulkResults(null), 3000);
+                return;
+            }
+        }
+
+        // Normal URL parsing (one per line)
+        const lines = raw.split('\n').map(l => l.trim()).filter(Boolean);
         let ok = 0, fail = 0;
         lines.forEach(line => {
             const detected = detectPlatformFromUrl(line);
@@ -139,7 +167,7 @@ const AddStreamModal: React.FC<AddStreamModalProps> = ({ onClose, onAdd, locale,
                 <div className="form-group">
                     <label className="form-label">
                         <LinkIcon size={11} style={{ marginRight: 4, verticalAlign: 'middle' }} />
-                        {locale === 'ja' ? 'URL または 配信者名 / ID' : 'URL or Streamer Name / ID'}
+                        {locale === 'ja' ? 'URL または チャンネル ID / ハンドル' : 'URL or Channel ID / Handle'}
                     </label>
                     <div className="input-row">
                         <input
@@ -173,7 +201,10 @@ const AddStreamModal: React.FC<AddStreamModalProps> = ({ onClose, onAdd, locale,
                     <textarea
                         className="form-input"
                         style={{ minHeight: '72px', resize: 'vertical', fontFamily: 'monospace', fontSize: '0.75rem' }}
-                        placeholder={'https://www.twitch.tv/xxx\nhttps://www.youtube.com/watch?v=xxx\n...'}
+                        placeholder={locale === 'ja'
+                            ? 'https://www.twitch.tv/xxx\nhttps://www.youtube.com/watch?v=xxx\n共有コード（1行）も貼り付け可'
+                            : 'https://www.twitch.tv/xxx\nhttps://www.youtube.com/watch?v=xxx\nShare code (single line) also accepted'
+                        }
                         value={bulkInput}
                         onChange={e => setBulkInput(e.target.value)}
                     />

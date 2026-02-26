@@ -12,7 +12,24 @@
       "Bash(git add src/components/StreamSidePanel.tsx src/App.tsx src/side-panel.css)",
       "Bash(git commit -m \"feat: サイドパネルにドラッグで並べ替え機能を追加\")",
       "Bash(git add .claude/)",
-      "Bash(git commit -m \"chore: .claude/launch.jsonを追加（開発サーバー設定）\")"
+      "Bash(git commit -m \"chore: .claude/launch.jsonを追加（開発サーバー設定）\")",
+      "Bash(git add CLAUDE.md docs/project_context.md)",
+      "Bash(git commit -m \"docs: コミット運用ルールを「論理的なまとまりごと」に更新\")",
+      "Bash(git add src/types.ts src/App.tsx src/components/StreamFrame.tsx)",
+      "Bash(git commit -m \"feat: 履歴からの追加を即時反映に変更 - ローディング枠を先に追加してバックグラウンド解決\")",
+      "Bash(git add src/utils/resolveChannelId.ts src/components/AddStreamModal.tsx)",
+      "Bash(git commit:*)",
+      "Bash(git add docs/project_context.md)",
+      "Bash(git add src/components/StreamSidePanel.tsx src/App.tsx)",
+      "Bash(git add src/hooks/useStreamHistory.ts src/components/StreamSidePanel.tsx src/App.tsx)",
+      "Bash(git add src/hooks/useDragReorder.ts src/components/StreamSidePanel.tsx src/App.tsx src/components/StreamFrame.tsx)",
+      "Bash(echo \"EXIT:$?\")",
+      "Bash(git add src/components/ChatSidePanel.tsx src/side-panel.css src/App.tsx)",
+      "Bash(git add src/components/ChatSidePanel.tsx src/App.tsx src/index.css src/side-panel.css)",
+      "Bash(git add src/components/AddStreamModal.tsx src/App.tsx)",
+      "Bash(git add src/hooks/useSettings.ts src/components/SettingsModal.tsx src/components/ChatSidePanel.tsx src/components/StreamSidePanel.tsx src/App.tsx src/side-panel.css src/index.css)",
+      "Bash(git add src/components/ChatSidePanel.tsx)",
+      "Bash(git add .)"
     ]
   }
 }
