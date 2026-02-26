@@ -4,7 +4,11 @@
  * Strategy:
  *   1. Fetch youtube.com/@handle/live via CORS proxy
  *   2. Extract video ID from <link rel="canonical">
- *   3. Accept ONLY if "isLiveNow":true is present (rejects scheduled streams)
+ *   3. Accept if "isLiveNow":true OR ("isLive":true AND "hlsManifestUrl") is present
+ *      - "isLiveNow":true  → standard live stream
+ *      - "isLive":true + hlsManifestUrl → 24/7 streams (e.g. news channels)
+ *      - hlsManifestUrl alone not checked: only present when actively streaming,
+ *        so it guards against scheduled streams that have isLive:true but haven't started
  *   4. Not live → return isLive: false (show offline screen, no fallback to videos)
  *
  * No API key or backend required.
@@ -43,7 +47,11 @@ function extractVideoIdFromCanonical(html: string): string | null {
 }
 
 function checkIsLive(html: string): boolean {
-    return /"isLiveNow"\s*:\s*true/.test(html);
+    // 通常ライブ
+    if (/"isLiveNow"\s*:\s*true/.test(html)) return true;
+    // 24/7ストリーム（ニュース等）: isLive:true かつ HLSマニフェストあり（予定配信は hlsManifestUrl を持たない）
+    if (/"isLive"\s*:\s*true/.test(html) && /"hlsManifestUrl"/.test(html)) return true;
+    return false;
 }
 
 export interface ResolveResult {
@@ -59,7 +67,7 @@ export interface ResolveResult {
 export async function resolveYouTubeChannel(handle: string): Promise<ResolveResult> {
     const cleanHandle = handle.startsWith('@') ? handle.slice(1) : handle;
 
-    // Step 1: try /live page — accept ONLY if isLiveNow:true (rejects scheduled streams)
+    // Step 1: try /live page — accept if live indicators detected (rejects scheduled streams)
     try {
         const liveUrl = `https://www.youtube.com/@${cleanHandle}/live`;
         const html = await fetchViaProxy(liveUrl);
@@ -70,7 +78,7 @@ export async function resolveYouTubeChannel(handle: string): Promise<ResolveResu
             return { videoId, isLive: true };
         }
         // ライブ中でない（予定配信 or オフライン）
-        console.log(`[resolveYouTubeChannel] Not live (isLiveNow=false or no canonical)`);
+        console.log(`[resolveYouTubeChannel] Not live (no live indicator or no canonical)`);
         return { videoId: '', isLive: false };
     } catch (err) {
         console.warn(`[resolveYouTubeChannel] /live fetch failed:`, err);
