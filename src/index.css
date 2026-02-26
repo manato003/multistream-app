@@ -793,3 +793,16 @@ body {
 .spin {
   animation: spin 0.8s linear infinite;
 }
+
+/* Resolving overlay */
+.resolving-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 20;
+  background: rgba(0, 0, 0, 0.55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-secondary);
+  pointer-events: none;
+}

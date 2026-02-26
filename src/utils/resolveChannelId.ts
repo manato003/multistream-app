@@ -100,13 +100,16 @@ export interface ResolveResult {
 /**
  * Resolve a YouTube channel handle to a video ID (live or latest).
  * @param handle - e.g. "@Popo_Ieiri" or "Popo_Ieiri"
+ * @param forceRefresh - キャッシュを無視して再取得する
  */
-export async function resolveYouTubeChannel(handle: string): Promise<ResolveResult> {
+export async function resolveYouTubeChannel(handle: string, forceRefresh = false): Promise<ResolveResult> {
     const cleanHandle = handle.startsWith('@') ? handle.slice(1) : handle;
     const cacheKey = cleanHandle.toLowerCase();
 
-    const cached = getCache(cacheKey);
-    if (cached) return { videoId: cached.videoId, isLive: cached.isLive };
+    if (!forceRefresh) {
+        const cached = getCache(cacheKey);
+        if (cached) return { videoId: cached.videoId, isLive: cached.isLive };
+    }
 
     // Step 1: try /live page — accept ONLY if isLiveNow:true (rejects scheduled streams)
     try {

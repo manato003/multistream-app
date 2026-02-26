@@ -13,6 +13,7 @@ import { t } from './i18n';
 import type { Locale } from './i18n';
 import { useStreamHistory } from './hooks/useStreamHistory';
 import type { HistoryEntry } from './hooks/useStreamHistory';
+import { resolveYouTubeChannel } from './utils/resolveChannelId';
 
 const HEADER_H = 36;
 const HIDE_THRESHOLD = HEADER_H * 5;
@@ -69,13 +70,23 @@ function App() {
     addToHistory(stream);
   };
 
-  const handleAddFromHistory = useCallback((entry: HistoryEntry) => {
+  const handleAddFromHistory = useCallback(async (entry: HistoryEntry) => {
+    // YouTubeチャンネルは最新のvideo IDを取得してから追加
+    let sourceId = entry.sourceId;
+    if (entry.type === 'youtube' && entry.inputType === 'channel') {
+      try {
+        const { videoId } = await resolveYouTubeChannel(entry.sourceId, true);
+        sourceId = videoId;
+      } catch (err) {
+        console.warn('[App] history add resolve failed:', err);
+      }
+    }
     const stream: Stream = {
       id: crypto.randomUUID(),
       type: entry.type,
       title: entry.title,
-      sourceId: entry.sourceId,
-      inputType: entry.inputType,
+      sourceId,
+      inputType: entry.inputType === 'channel' ? 'video' : entry.inputType,
     };
     setStreams(prev => [...prev, stream]);
   }, []);
@@ -83,6 +94,34 @@ function App() {
   const handleToggleHidden = useCallback((id: string) => {
     setStreams(prev => prev.map(s => s.id === id ? { ...s, hidden: !s.hidden } : s));
   }, []);
+
+  const handleUpdateSourceId = useCallback((id: string, newSourceId: string) => {
+    setStreams(prev => prev.map(s => s.id === id ? { ...s, sourceId: newSourceId } : s));
+  }, []);
+
+  // 起動時：全YouTubeチャンネル枠のvideo IDをバックグラウンドで再取得
+  useEffect(() => {
+    const refreshAll = async () => {
+      setStreams(prev => {
+        const youtubeChannels = prev.filter(s => s.type === 'youtube' && s.inputType === 'channel');
+        if (youtubeChannels.length === 0) return prev;
+        // 非同期で各チャンネルを解決して順次更新
+        youtubeChannels.forEach(async (stream) => {
+          try {
+            const { videoId } = await resolveYouTubeChannel(stream.sourceId, true);
+            setStreams(cur => cur.map(s =>
+              s.id === stream.id ? { ...s, sourceId: videoId } : s
+            ));
+          } catch (err) {
+            console.warn(`[App] startup refresh failed for ${stream.sourceId}:`, err);
+          }
+        });
+        return prev;
+      });
+    };
+    refreshAll();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // 起動時1回のみ
 
   const handleApplyConfig = (newStreams: Stream[]) => {
     setStreams(newStreams);
@@ -152,6 +191,7 @@ function App() {
           globalTime={0}
           locale={locale}
           onHide={handleToggleHidden}
+          onUpdateSourceId={handleUpdateSourceId}
         />
       </main>
 

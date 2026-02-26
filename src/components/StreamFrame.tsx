@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
-import { X, ExternalLink, RefreshCw, GripVertical, EyeOff } from 'lucide-react';
+import { X, ExternalLink, RefreshCw, GripVertical, EyeOff, Loader } from 'lucide-react';
 import type { Stream } from '../types';
 import TwitchPlayer from './TwitchPlayer';
 import YouTubePlayer from './YouTubePlayer';
 import { t } from '../i18n';
 import type { Locale } from '../i18n';
+import { resolveYouTubeChannel } from '../utils/resolveChannelId';
 
 interface StreamFrameProps {
     stream: Stream;
@@ -18,17 +19,17 @@ interface StreamFrameProps {
     isDragging: boolean;
     isDragTarget: boolean;
     onHide: (id: string) => void;
+    onUpdateSourceId: (id: string, newSourceId: string) => void;
 }
 
 const StreamFrame: React.FC<StreamFrameProps> = React.memo(({
     stream, onRemove, isArchiveMode, globalTime, locale,
     isExpanded, onToggleExpand, onDragHandleMouseDown,
-    isDragging, isDragTarget, onHide,
+    isDragging, isDragTarget, onHide, onUpdateSourceId,
 }) => {
     const [isHovered, setIsHovered] = useState(false);
-    // Reload key is managed internally — incrementing it remounts the player
-    // without affecting siblings
     const [reloadKey, setReloadKey] = useState(0);
+    const [isResolving, setIsResolving] = useState(false);
 
     const handlePopout = (e: React.MouseEvent) => {
         e.stopPropagation(); e.preventDefault();
@@ -50,8 +51,23 @@ const StreamFrame: React.FC<StreamFrameProps> = React.memo(({
         onRemove(stream.id);
     };
 
-    const handleReload = (e: React.MouseEvent) => {
+    const handleReload = async (e: React.MouseEvent) => {
         e.stopPropagation(); e.preventDefault();
+        // YouTubeチャンネル枠はvideo IDを再取得してから切り替え
+        if (stream.type === 'youtube' && stream.inputType === 'channel') {
+            setIsResolving(true);
+            try {
+                const { videoId } = await resolveYouTubeChannel(stream.sourceId, true);
+                onUpdateSourceId(stream.id, videoId);
+                setReloadKey(k => k + 1);
+            } catch (err) {
+                console.error('[StreamFrame] reload resolve failed:', err);
+                setReloadKey(k => k + 1); // 失敗しても既存のまま再マウント
+            } finally {
+                setIsResolving(false);
+            }
+            return;
+        }
         setReloadKey(k => k + 1);
     };
 
@@ -84,8 +100,8 @@ const StreamFrame: React.FC<StreamFrameProps> = React.memo(({
                     <button className="stream-frame-action" onClick={e => { e.stopPropagation(); onHide(stream.id); }} title={locale === 'ja' ? '非表示' : 'Hide'}>
                         <EyeOff size={12} />
                     </button>
-                    <button className="stream-frame-action" onClick={handleReload} title={t(locale, 'reload')}>
-                        <RefreshCw size={12} />
+                    <button className="stream-frame-action" onClick={handleReload} title={t(locale, 'reload')} disabled={isResolving}>
+                        {isResolving ? <Loader size={12} className="spin" /> : <RefreshCw size={12} />}
                     </button>
                     <button className="stream-frame-action" onClick={handlePopout} title={t(locale, 'popout')}>
                         <ExternalLink size={12} />
@@ -115,6 +131,7 @@ const StreamFrame: React.FC<StreamFrameProps> = React.memo(({
             </div>
 
             {isDragTarget && <div className="drag-target-overlay" />}
+            {isResolving && <div className="resolving-overlay"><Loader size={24} className="spin" /></div>}
         </div>
     );
 });
