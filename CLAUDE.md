@@ -53,7 +53,7 @@
 
 ## プロジェクト固有のルール
 
-- コードを編集したら**会話の最後に必ずgit commit**する
+- コードを編集したら**論理的なまとまりごとにgit commit**する（細かいコミットが安全）
 - コミット: `cd "C:\Users\manat\OneDrive\Desktop\claude\multistream-app"; git add .; git commit -m "メッセージ"`
 - iframeを扱う変更は特にテストを慎重に（HTML5 DnD非対応、elementFromPoint方式を使用中）
 - `StreamFrame` の `key` に `reloadKey` を含めない（全フレームリマウントのバグが再発する）

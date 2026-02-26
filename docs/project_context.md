@@ -119,6 +119,6 @@ src/
 5. ドラッグ時のリロード問題修正（CSS order方式）
 
 ## 運用ルール
-- Claudeがコードを編集したら会話の最後にgit commitする
+- Claudeがコードを編集したら**論理的なまとまりごとにgit commit**する（細かいコミットが安全）
 - コミットコマンド: `cd "C:\Users\manat\OneDrive\Desktop\claude\multistream-app"; git add .; git commit -m "メッセージ"`
 - 新しいチャット開始時: このファイル（`docs/project_context.md`）を最初に読ませる
