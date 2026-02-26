@@ -5,4 +5,5 @@ export interface Stream {
     sourceId: string;
     inputType: 'channel' | 'video' | 'url';
     startTime?: number;
+    hidden?: boolean;
 }

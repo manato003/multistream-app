@@ -1,7 +1,9 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { Plus, MonitorPlay, Settings, Share2, HelpCircle, Languages } from 'lucide-react';
 import './index.css';
+import './side-panel.css';
 import StreamGrid from './components/StreamGrid';
+import StreamSidePanel from './components/StreamSidePanel';
 import AddStreamModal from './components/AddStreamModal';
 import ShareModal from './components/ShareModal';
 import HelpModal from './components/HelpModal';
@@ -63,6 +65,10 @@ function App() {
     setStreams(prev => [...prev, stream]);
   };
 
+  const handleToggleHidden = useCallback((id: string) => {
+    setStreams(prev => prev.map(s => s.id === id ? { ...s, hidden: !s.hidden } : s));
+  }, []);
+
   const handleApplyConfig = (newStreams: Stream[]) => {
     setStreams(newStreams);
     setIsShareModalOpen(false);
@@ -116,12 +122,18 @@ function App() {
       </header>
 
       <main className="app-main">
-        <StreamGrid
+        <StreamSidePanel
           streams={streams}
+          onToggleHidden={handleToggleHidden}
+          locale={locale}
+        />
+        <StreamGrid
+          streams={streams.filter(s => !s.hidden)}
           setStreams={setStreams}
           isArchiveMode={false}
           globalTime={0}
           locale={locale}
+          onHide={handleToggleHidden}
         />
       </main>
 

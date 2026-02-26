@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, ExternalLink, RefreshCw, GripVertical } from 'lucide-react';
+import { X, ExternalLink, RefreshCw, GripVertical, EyeOff } from 'lucide-react';
 import type { Stream } from '../types';
 import TwitchPlayer from './TwitchPlayer';
 import YouTubePlayer from './YouTubePlayer';
@@ -17,12 +17,13 @@ interface StreamFrameProps {
     onDragHandleMouseDown: (e: React.MouseEvent, id: string) => void;
     isDragging: boolean;
     isDragTarget: boolean;
+    onHide: (id: string) => void;
 }
 
 const StreamFrame: React.FC<StreamFrameProps> = React.memo(({
     stream, onRemove, isArchiveMode, globalTime, locale,
     isExpanded, onToggleExpand, onDragHandleMouseDown,
-    isDragging, isDragTarget,
+    isDragging, isDragTarget, onHide,
 }) => {
     const [isHovered, setIsHovered] = useState(false);
     // Reload key is managed internally — incrementing it remounts the player
@@ -85,6 +86,9 @@ const StreamFrame: React.FC<StreamFrameProps> = React.memo(({
                     </button>
                     <button className="stream-frame-action" onClick={handlePopout} title={t(locale, 'popout')}>
                         <ExternalLink size={12} />
+                    </button>
+                    <button className="stream-frame-action" onClick={e => { e.stopPropagation(); onHide(stream.id); }} title={locale === 'ja' ? '非表示' : 'Hide'}>
+                        <EyeOff size={12} />
                     </button>
                     <button className="stream-frame-action close-btn" onClick={handleClose} title={t(locale, 'closeStream')}>
                         <X size={12} />
