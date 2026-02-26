@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { Plus, MonitorPlay, Settings, Share2, HelpCircle, Languages } from 'lucide-react';
 import './index.css';
 import './side-panel.css';
@@ -166,6 +166,8 @@ function App() {
     setIsShareModalOpen(false);
   };
 
+  const visibleStreams = useMemo(() => streams.filter(s => !s.hidden), [streams]);
+
   return (
     <div className="app-root">
       <div className="header-trigger" onMouseEnter={showHeader} />
@@ -226,7 +228,7 @@ function App() {
           locale={locale}
         />
         <StreamGrid
-          streams={streams.filter(s => !s.hidden)}
+          streams={visibleStreams}
           setStreams={setStreams}
           isArchiveMode={false}
           globalTime={0}

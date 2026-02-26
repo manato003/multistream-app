@@ -88,7 +88,7 @@ const StreamFrame: React.FC<StreamFrameProps> = React.memo(({
                 <div className="stream-frame-title">
                     <div
                         className="drag-handle"
-                        title="ドラッグして並べ替え"
+                        title={locale === 'ja' ? 'ドラッグして並べ替え' : 'Drag to reorder'}
                         onMouseDown={(e) => onDragHandleMouseDown(e, stream.id)}
                     >
                         <GripVertical size={14} />

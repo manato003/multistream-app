@@ -1,8 +1,9 @@
-import React, { useState, useRef, useCallback } from 'react';
+import React, { useState, useRef, useCallback, useMemo } from 'react';
 import { EyeOff, Eye, Plus, X, Clock, GripVertical } from 'lucide-react';
 import type { Stream } from '../types';
 import type { Locale } from '../i18n';
 import type { HistoryEntry } from '../hooks/useStreamHistory';
+import { useDragReorder } from '../hooks/useDragReorder';
 
 interface StreamSidePanelProps {
     streams: Stream[];
@@ -20,15 +21,12 @@ const StreamSidePanel: React.FC<StreamSidePanelProps> = ({
     streams, onToggleHidden, onRemove, onReorder, history, onAddFromHistory, onRemoveFromHistory, onReorderHistory, locale,
 }) => {
     const [visible, setVisible] = useState(false);
-    const [draggingId, setDraggingId] = useState<string | null>(null);
-    const [dragOverId, setDragOverId] = useState<string | null>(null);
-    const [draggingHistoryId, setDraggingHistoryId] = useState<string | null>(null);
-    const [dragOverHistoryId, setDragOverHistoryId] = useState<string | null>(null);
     const hideTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-    const draggingIdRef = useRef<string | null>(null);
-    const dragOverIdRef = useRef<string | null>(null);
-    const draggingHistoryIdRef = useRef<string | null>(null);
-    const dragOverHistoryIdRef = useRef<string | null>(null);
+
+    const { draggingId, dragOverId, handleMouseDown: handleStreamMouseDown } =
+        useDragReorder('streamId', onReorder);
+    const { draggingId: draggingHistoryId, dragOverId: dragOverHistoryId, handleMouseDown: handleHistoryMouseDown } =
+        useDragReorder('historyId', onReorderHistory);
 
     const show = useCallback(() => {
         if (hideTimerRef.current) clearTimeout(hideTimerRef.current);
@@ -39,119 +37,12 @@ const StreamSidePanel: React.FC<StreamSidePanelProps> = ({
         hideTimerRef.current = setTimeout(() => setVisible(false), 300);
     }, []);
 
-    const handleDragHandleMouseDown = useCallback((e: React.MouseEvent, id: string) => {
-        e.preventDefault();
-        e.stopPropagation();
-
-        const startX = e.clientX;
-        const startY = e.clientY;
-        let isDragActive = false;
-
-        const onMouseMove = (me: MouseEvent) => {
-            if (!isDragActive) {
-                const d = Math.hypot(me.clientX - startX, me.clientY - startY);
-                if (d < 5) return;
-                isDragActive = true;
-                draggingIdRef.current = id;
-                setDraggingId(id);
-            }
-
-            const el = document.elementFromPoint(me.clientX, me.clientY);
-            let target: Element | null = el;
-            let targetId: string | null = null;
-            while (target) {
-                const sid = (target as HTMLElement).dataset?.streamId;
-                if (sid) { targetId = sid; break; }
-                target = target.parentElement;
-            }
-
-            if (targetId !== dragOverIdRef.current) {
-                dragOverIdRef.current = targetId;
-                setDragOverId(targetId);
-            }
-        };
-
-        const onMouseUp = () => {
-            window.removeEventListener('mousemove', onMouseMove);
-            window.removeEventListener('mouseup', onMouseUp);
-
-            const fromId = draggingIdRef.current;
-            const toId = dragOverIdRef.current;
-
-            if (fromId && toId && fromId !== toId) {
-                onReorder(fromId, toId);
-            }
-
-            draggingIdRef.current = null;
-            dragOverIdRef.current = null;
-            setDraggingId(null);
-            setDragOverId(null);
-        };
-
-        window.addEventListener('mousemove', onMouseMove);
-        window.addEventListener('mouseup', onMouseUp);
-    }, [onReorder]);
-
-    const handleHistoryDragHandleMouseDown = useCallback((e: React.MouseEvent, id: string) => {
-        e.preventDefault();
-        e.stopPropagation();
-
-        const startX = e.clientX;
-        const startY = e.clientY;
-        let isDragActive = false;
-
-        const onMouseMove = (me: MouseEvent) => {
-            if (!isDragActive) {
-                const d = Math.hypot(me.clientX - startX, me.clientY - startY);
-                if (d < 5) return;
-                isDragActive = true;
-                draggingHistoryIdRef.current = id;
-                setDraggingHistoryId(id);
-            }
-
-            const el = document.elementFromPoint(me.clientX, me.clientY);
-            let target: Element | null = el;
-            let targetId: string | null = null;
-            while (target) {
-                const hid = (target as HTMLElement).dataset?.historyId;
-                if (hid) { targetId = hid; break; }
-                target = target.parentElement;
-            }
-
-            if (targetId !== dragOverHistoryIdRef.current) {
-                dragOverHistoryIdRef.current = targetId;
-                setDragOverHistoryId(targetId);
-            }
-        };
-
-        const onMouseUp = () => {
-            window.removeEventListener('mousemove', onMouseMove);
-            window.removeEventListener('mouseup', onMouseUp);
-
-            const fromId = draggingHistoryIdRef.current;
-            const toId = dragOverHistoryIdRef.current;
-
-            if (fromId && toId && fromId !== toId) {
-                onReorderHistory(fromId, toId);
-            }
-
-            draggingHistoryIdRef.current = null;
-            dragOverHistoryIdRef.current = null;
-            setDraggingHistoryId(null);
-            setDragOverHistoryId(null);
-        };
-
-        window.addEventListener('mousemove', onMouseMove);
-        window.addEventListener('mouseup', onMouseUp);
-    }, [onReorderHistory]);
-
-    const visibleStreams = streams.filter(s => !s.hidden);
-    const hiddenStreams = streams.filter(s => s.hidden);
-
-    // 現在グリッドにある配信（表示中・非表示問わず）を履歴から除外
-    const activeSourceIds = new Set(streams.map(s => `${s.type}:${s.sourceId}`));
-    const filteredHistory = history.filter(
-        e => !activeSourceIds.has(`${e.type}:${e.sourceId}`)
+    const visibleStreams = useMemo(() => streams.filter(s => !s.hidden), [streams]);
+    const hiddenStreams = useMemo(() => streams.filter(s => s.hidden), [streams]);
+    const activeSourceIds = useMemo(() => new Set(streams.map(s => `${s.type}:${s.sourceId}`)), [streams]);
+    const filteredHistory = useMemo(
+        () => history.filter(e => !activeSourceIds.has(`${e.type}:${e.sourceId}`)),
+        [history, activeSourceIds],
     );
 
     const label = (ja: string, en: string) => locale === 'ja' ? ja : en;
@@ -170,7 +61,7 @@ const StreamSidePanel: React.FC<StreamSidePanelProps> = ({
             <div key={stream.id} className={cls} data-stream-id={stream.id}>
                 <button
                     className="side-panel-drag-handle"
-                    onMouseDown={(e) => handleDragHandleMouseDown(e, stream.id)}
+                    onMouseDown={(e) => handleStreamMouseDown(e, stream.id)}
                     title={label('ドラッグして並べ替え', 'Drag to reorder')}
                 >
                     <GripVertical size={12} />
@@ -249,7 +140,7 @@ const StreamSidePanel: React.FC<StreamSidePanelProps> = ({
                             <div key={entry.historyId} className={histCls} data-history-id={entry.historyId}>
                                 <button
                                     className="side-panel-drag-handle"
-                                    onMouseDown={(e) => handleHistoryDragHandleMouseDown(e, entry.historyId)}
+                                    onMouseDown={(e) => handleHistoryMouseDown(e, entry.historyId)}
                                     title={label('ドラッグして並べ替え', 'Drag to reorder')}
                                 >
                                     <GripVertical size={12} />
