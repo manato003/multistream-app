@@ -1,10 +1,9 @@
 import React, { useState, useRef } from 'react';
-import { X, Link as LinkIcon, Plus, Trash2, CheckCircle, Loader } from 'lucide-react';
+import { X, Link as LinkIcon, Plus, Trash2, CheckCircle } from 'lucide-react';
 import type { Stream } from '../types';
 import { t } from '../i18n';
 import type { Locale } from '../i18n';
 import { parseTwitchInput, parseYouTubeInput } from '../utils/parseInput';
-import { resolveYouTubeChannel, resolveVideoToChannel } from '../utils/resolveChannelId';
 
 interface AddStreamModalProps {
     onClose: () => void;
@@ -46,14 +45,13 @@ const AddStreamModal: React.FC<AddStreamModalProps> = ({ onClose, onAdd, locale,
     const [singleInput, setSingleInput] = useState('');
     const [bulkInput, setBulkInput] = useState('');
     const [bulkResults, setBulkResults] = useState<{ ok: number; fail: number } | null>(null);
-    const [resolving, setResolving] = useState(false);
     const [resolveError, setResolveError] = useState<string | null>(null);
     const singleInputRef = useRef<HTMLInputElement>(null);
 
-    // ── Single add ────────────────────────────────────────────────────────
-    const addSingle = async () => {
+    // ── Single add (fully synchronous — resolution is handled in App.tsx) ──
+    const addSingle = () => {
         const val = singleInput.trim();
-        if (!val || resolving) return;
+        if (!val) return;
         setResolveError(null);
 
         const detected = detectPlatformFromUrl(val);
@@ -67,20 +65,18 @@ const AddStreamModal: React.FC<AddStreamModalProps> = ({ onClose, onAdd, locale,
                 setResolveError(locale === 'ja' ? 'このチャンネルはすでに追加されています' : 'This channel is already added');
                 return;
             }
-            setResolving(true);
-            try {
-                const { videoId, isLive } = await resolveYouTubeChannel(handle);
-                const stream = isLive
-                    ? buildStream(type, { ...parsed, sourceId: videoId, inputType: 'video' })
-                    : buildStream(type, { ...parsed, sourceId: handle, inputType: 'channel' });
-                onAdd({ ...stream, isLive, channelHandle: handle });
-                setSingleInput('');
-                singleInputRef.current?.focus();
-            } catch (err) {
-                setResolveError(err instanceof Error ? err.message : 'チャンネルIDの取得に失敗しました');
-            } finally {
-                setResolving(false);
-            }
+            // Add immediately as a resolving placeholder; App.tsx resolves in background
+            onAdd({
+                id: crypto.randomUUID(),
+                type: 'youtube',
+                title: `YouTube: @${handle}`,
+                sourceId: handle,
+                inputType: 'channel',
+                channelHandle: handle,
+                isResolving: true,
+            });
+            setSingleInput('');
+            singleInputRef.current?.focus();
             return;
         }
 
@@ -90,20 +86,16 @@ const AddStreamModal: React.FC<AddStreamModalProps> = ({ onClose, onAdd, locale,
                 setResolveError(locale === 'ja' ? 'この動画はすでに追加されています' : 'This video is already added');
                 return;
             }
-            setResolving(true);
-            try {
-                const handle = await resolveVideoToChannel(parsed.sourceId);
-                if (handle && addedStreams.some(s => s.type === 'youtube' && normalizeHandle(s.channelHandle) === handle)) {
-                    setResolveError(locale === 'ja' ? 'このチャンネルはすでに追加されています' : 'This channel is already added');
-                    return;
-                }
-                const title = handle ? `@${handle}` : parsed.sourceId;
-                onAdd(buildStream(type, { ...parsed, title }));
-                setSingleInput('');
-                singleInputRef.current?.focus();
-            } finally {
-                setResolving(false);
-            }
+            // Add immediately; App.tsx resolves channel handle in background to update title
+            onAdd({
+                id: crypto.randomUUID(),
+                type: 'youtube',
+                title: `YouTube: ${parsed.title}`,
+                sourceId: parsed.sourceId,
+                inputType: 'video',
+            });
+            setSingleInput('');
+            singleInputRef.current?.focus();
             return;
         }
 
@@ -159,17 +151,11 @@ const AddStreamModal: React.FC<AddStreamModalProps> = ({ onClose, onAdd, locale,
                             onChange={e => { setSingleInput(e.target.value); setResolveError(null); }}
                             onKeyDown={e => e.key === 'Enter' && addSingle()}
                             autoFocus
-                            disabled={resolving}
                         />
-                        <button className="add-btn" onClick={addSingle} disabled={resolving}>
-                            {resolving ? <Loader size={14} className="spin" /> : <Plus size={14} />}
+                        <button className="add-btn" onClick={addSingle}>
+                            <Plus size={14} />
                         </button>
                     </div>
-                    {resolving && (
-                        <p style={{ fontSize: '0.72rem', color: '#94a3b8', marginTop: '4px' }}>
-                            {locale === 'ja' ? 'チャンネルIDを取得中...' : 'Resolving channel ID...'}
-                        </p>
-                    )}
                     {resolveError && (
                         <p style={{ fontSize: '0.72rem', color: '#f87171', marginTop: '4px' }}>
                             {resolveError}

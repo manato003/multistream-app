@@ -14,7 +14,7 @@ import { t } from './i18n';
 import type { Locale } from './i18n';
 import { useStreamHistory } from './hooks/useStreamHistory';
 import type { HistoryEntry } from './hooks/useStreamHistory';
-import { resolveYouTubeChannel } from './utils/resolveChannelId';
+import { resolveYouTubeChannel, resolveVideoToChannel } from './utils/resolveChannelId';
 
 const HEADER_H = 36;
 const HIDE_THRESHOLD = HEADER_H * 5;
@@ -67,9 +67,43 @@ function App() {
     localStorage.setItem('locale', next);
   }, [locale]);
 
-  const handleAddStream = (stream: Stream) => {
+  const handleAddStream = async (stream: Stream) => {
     setStreams(prev => [...prev, stream]);
     addToHistory(stream);
+
+    // ── YouTube channel: resolve live video ID in background ────────────
+    if (stream.type === 'youtube' && stream.inputType === 'channel' && stream.channelHandle) {
+      try {
+        const { videoId, isLive } = await resolveYouTubeChannel(stream.channelHandle);
+        setStreams(prev => prev.map(s => s.id === stream.id ? {
+          ...s,
+          sourceId: isLive ? videoId : stream.channelHandle!,
+          inputType: isLive ? 'video' : 'channel',
+          isLive,
+          isResolving: false,
+        } : s));
+      } catch (err) {
+        console.warn('[App] handleAddStream channel resolve failed:', err);
+        setStreams(prev => prev.map(s => s.id === stream.id ? { ...s, isResolving: false } : s));
+      }
+      return;
+    }
+
+    // ── YouTube video URL: resolve channel handle in background (title update) ──
+    if (stream.type === 'youtube' && stream.inputType === 'video' && !stream.channelHandle) {
+      try {
+        const handle = await resolveVideoToChannel(stream.sourceId);
+        if (handle) {
+          setStreams(prev => prev.map(s => s.id === stream.id ? {
+            ...s,
+            title: `YouTube: @${handle}`,
+            channelHandle: handle,
+          } : s));
+        }
+      } catch (err) {
+        console.warn('[App] handleAddStream video handle resolve failed:', err);
+      }
+    }
   };
 
   const handleAddFromHistory = useCallback(async (entry: HistoryEntry) => {
