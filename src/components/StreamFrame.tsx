@@ -61,8 +61,8 @@ const StreamFrame: React.FC<StreamFrameProps> = React.memo(({
                 onUpdateSourceId(stream.id, videoId);
                 setReloadKey(k => k + 1);
             } catch (err) {
-                console.error('[StreamFrame] reload resolve failed:', err);
-                setReloadKey(k => k + 1); // 失敗しても既存のまま再マウント
+                console.warn('[StreamFrame] reload resolve failed, keeping current stream:', err);
+                // 失敗時は何もしない（古いvideo IDのまま維持）
             } finally {
                 setIsResolving(false);
             }
