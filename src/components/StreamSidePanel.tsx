@@ -12,18 +12,23 @@ interface StreamSidePanelProps {
     history: HistoryEntry[];
     onAddFromHistory: (entry: HistoryEntry) => void;
     onRemoveFromHistory: (historyId: string) => void;
+    onReorderHistory: (fromId: string, toId: string) => void;
     locale: Locale;
 }
 
 const StreamSidePanel: React.FC<StreamSidePanelProps> = ({
-    streams, onToggleHidden, onRemove, onReorder, history, onAddFromHistory, onRemoveFromHistory, locale,
+    streams, onToggleHidden, onRemove, onReorder, history, onAddFromHistory, onRemoveFromHistory, onReorderHistory, locale,
 }) => {
     const [visible, setVisible] = useState(false);
     const [draggingId, setDraggingId] = useState<string | null>(null);
     const [dragOverId, setDragOverId] = useState<string | null>(null);
+    const [draggingHistoryId, setDraggingHistoryId] = useState<string | null>(null);
+    const [dragOverHistoryId, setDragOverHistoryId] = useState<string | null>(null);
     const hideTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const draggingIdRef = useRef<string | null>(null);
     const dragOverIdRef = useRef<string | null>(null);
+    const draggingHistoryIdRef = useRef<string | null>(null);
+    const dragOverHistoryIdRef = useRef<string | null>(null);
 
     const show = useCallback(() => {
         if (hideTimerRef.current) clearTimeout(hideTimerRef.current);
@@ -86,6 +91,59 @@ const StreamSidePanel: React.FC<StreamSidePanelProps> = ({
         window.addEventListener('mousemove', onMouseMove);
         window.addEventListener('mouseup', onMouseUp);
     }, [onReorder]);
+
+    const handleHistoryDragHandleMouseDown = useCallback((e: React.MouseEvent, id: string) => {
+        e.preventDefault();
+        e.stopPropagation();
+
+        const startX = e.clientX;
+        const startY = e.clientY;
+        let isDragActive = false;
+
+        const onMouseMove = (me: MouseEvent) => {
+            if (!isDragActive) {
+                const d = Math.hypot(me.clientX - startX, me.clientY - startY);
+                if (d < 5) return;
+                isDragActive = true;
+                draggingHistoryIdRef.current = id;
+                setDraggingHistoryId(id);
+            }
+
+            const el = document.elementFromPoint(me.clientX, me.clientY);
+            let target: Element | null = el;
+            let targetId: string | null = null;
+            while (target) {
+                const hid = (target as HTMLElement).dataset?.historyId;
+                if (hid) { targetId = hid; break; }
+                target = target.parentElement;
+            }
+
+            if (targetId !== dragOverHistoryIdRef.current) {
+                dragOverHistoryIdRef.current = targetId;
+                setDragOverHistoryId(targetId);
+            }
+        };
+
+        const onMouseUp = () => {
+            window.removeEventListener('mousemove', onMouseMove);
+            window.removeEventListener('mouseup', onMouseUp);
+
+            const fromId = draggingHistoryIdRef.current;
+            const toId = dragOverHistoryIdRef.current;
+
+            if (fromId && toId && fromId !== toId) {
+                onReorderHistory(fromId, toId);
+            }
+
+            draggingHistoryIdRef.current = null;
+            dragOverHistoryIdRef.current = null;
+            setDraggingHistoryId(null);
+            setDragOverHistoryId(null);
+        };
+
+        window.addEventListener('mousemove', onMouseMove);
+        window.addEventListener('mouseup', onMouseUp);
+    }, [onReorderHistory]);
 
     const visibleStreams = streams.filter(s => !s.hidden);
     const hiddenStreams = streams.filter(s => s.hidden);
@@ -179,26 +237,42 @@ const StreamSidePanel: React.FC<StreamSidePanelProps> = ({
                             {label('履歴', 'History')}
                         </div>
                     )}
-                    {filteredHistory.map(entry => (
-                        <div key={entry.historyId} className="side-panel-item is-history">
-                            <span className={`platform-dot ${entry.type}`} style={{ flexShrink: 0 }} />
-                            <span className="side-panel-item-title" title={entry.title}>{entry.title}</span>
-                            <button
-                                className="side-panel-toggle-btn"
-                                onClick={() => onAddFromHistory(entry)}
-                                title={label('追加', 'Add')}
-                            >
-                                <Plus size={13} />
-                            </button>
-                            <button
-                                className="side-panel-toggle-btn danger"
-                                onClick={() => onRemoveFromHistory(entry.historyId)}
-                                title={label('履歴から削除', 'Remove from history')}
-                            >
-                                <X size={11} />
-                            </button>
-                        </div>
-                    ))}
+                    {filteredHistory.map(entry => {
+                        const isHistDragging = draggingHistoryId === entry.historyId;
+                        const isHistTarget = dragOverHistoryId === entry.historyId && draggingHistoryId !== entry.historyId;
+                        const histCls = [
+                            'side-panel-item is-history',
+                            isHistDragging ? 'is-dragging-item' : '',
+                            isHistTarget ? 'is-drag-target' : '',
+                        ].filter(Boolean).join(' ');
+                        return (
+                            <div key={entry.historyId} className={histCls} data-history-id={entry.historyId}>
+                                <button
+                                    className="side-panel-drag-handle"
+                                    onMouseDown={(e) => handleHistoryDragHandleMouseDown(e, entry.historyId)}
+                                    title={label('ドラッグして並べ替え', 'Drag to reorder')}
+                                >
+                                    <GripVertical size={12} />
+                                </button>
+                                <span className={`platform-dot ${entry.type}`} style={{ flexShrink: 0 }} />
+                                <span className="side-panel-item-title" title={entry.title}>{entry.title}</span>
+                                <button
+                                    className="side-panel-toggle-btn"
+                                    onClick={() => onAddFromHistory(entry)}
+                                    title={label('追加', 'Add')}
+                                >
+                                    <Plus size={13} />
+                                </button>
+                                <button
+                                    className="side-panel-toggle-btn danger"
+                                    onClick={() => onRemoveFromHistory(entry.historyId)}
+                                    title={label('履歴から削除', 'Remove from history')}
+                                >
+                                    <X size={11} />
+                                </button>
+                            </div>
+                        );
+                    })}
 
                     {streams.length === 0 && filteredHistory.length === 0 && (
                         <div className="side-panel-empty">{label('配信なし', 'No streams')}</div>

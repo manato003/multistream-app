@@ -27,7 +27,7 @@ function App() {
   const [streams, setStreams] = useState<Stream[]>([]);
   const [headerVisible, setHeaderVisible] = useState(false);
   const headerVisibleRef = useRef(false);
-  const { history, addToHistory, removeFromHistory } = useStreamHistory();
+  const { history, addToHistory, removeFromHistory, reorderHistory } = useStreamHistory();
 
   useEffect(() => {
     const onMouseMove = (e: MouseEvent) => {
@@ -222,6 +222,7 @@ function App() {
           history={history}
           onAddFromHistory={handleAddFromHistory}
           onRemoveFromHistory={removeFromHistory}
+          onReorderHistory={reorderHistory}
           locale={locale}
         />
         <StreamGrid

@@ -56,5 +56,17 @@ export function useStreamHistory() {
         });
     }, []);
 
-    return { history, addToHistory, removeFromHistory };
+    const reorderHistory = useCallback((fromId: string, toId: string) => {
+        setHistory(prev => {
+            const arr = [...prev];
+            const fi = arr.findIndex(e => e.historyId === fromId);
+            const ti = arr.findIndex(e => e.historyId === toId);
+            if (fi === -1 || ti === -1) return prev;
+            [arr[fi], arr[ti]] = [arr[ti], arr[fi]];
+            save(arr);
+            return arr;
+        });
+    }, []);
+
+    return { history, addToHistory, removeFromHistory, reorderHistory };
 }
