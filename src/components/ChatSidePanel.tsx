@@ -67,8 +67,6 @@ const ChatSidePanel: React.FC<ChatSidePanelProps> = ({ streams, locale, isOpen, 
     const showCollapsed = selectedStream !== null && !isSelectorExpanded;
 
     return (
-        <>
-            {/* チャットパネル本体 */}
             <div className={`chat-panel${isOpen ? ' visible' : ''}${swapped ? ' left' : ''}`}>
                 {/* ヘッダー */}
                 <div className="chat-panel-header">
