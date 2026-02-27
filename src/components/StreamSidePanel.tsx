@@ -1,9 +1,10 @@
-import React, { useState, useRef, useCallback, useMemo } from 'react';
+import React, { useMemo } from 'react';
 import { EyeOff, Eye, Plus, X, Clock, GripVertical } from 'lucide-react';
 import type { Stream } from '../types';
 import type { Locale } from '../i18n';
 import type { HistoryEntry } from '../hooks/useStreamHistory';
 import { useDragReorder } from '../hooks/useDragReorder';
+import { useHoverPanel } from '../hooks/useHoverPanel';
 
 interface StreamSidePanelProps {
     streams: Stream[];
@@ -21,22 +22,12 @@ interface StreamSidePanelProps {
 const StreamSidePanel: React.FC<StreamSidePanelProps> = ({
     streams, onToggleHidden, onRemove, onReorder, history, onAddFromHistory, onRemoveFromHistory, onReorderHistory, locale, swapped = false,
 }) => {
-    const [visible, setVisible] = useState(false);
-    const hideTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+    const { visible, show, scheduleHide } = useHoverPanel({ hideDelay: 500, idleTimeout: 5000 });
 
     const { draggingId, dragOverId, handleMouseDown: handleStreamMouseDown } =
         useDragReorder('streamId', onReorder);
     const { draggingId: draggingHistoryId, dragOverId: dragOverHistoryId, handleMouseDown: handleHistoryMouseDown } =
         useDragReorder('historyId', onReorderHistory);
-
-    const show = useCallback(() => {
-        if (hideTimerRef.current) clearTimeout(hideTimerRef.current);
-        setVisible(true);
-    }, []);
-
-    const scheduleHide = useCallback(() => {
-        hideTimerRef.current = setTimeout(() => setVisible(false), 300);
-    }, []);
 
     const activeSourceIds = useMemo(() => {
         const ids = new Set<string>();

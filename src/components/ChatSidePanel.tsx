@@ -1,7 +1,8 @@
-import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { MessageSquare, Pin, ChevronDown } from 'lucide-react';
 import type { Stream } from '../types';
 import type { Locale } from '../i18n';
+import { useHoverPanel } from '../hooks/useHoverPanel';
 
 interface ChatSidePanelProps {
     streams: Stream[];
@@ -28,22 +29,11 @@ function getChatUrl(stream: Stream): string | null {
 }
 
 const ChatSidePanel: React.FC<ChatSidePanelProps> = ({ streams, locale, isPinned, onPinChange, swapped = false }) => {
-    const [visible, setVisible] = useState(false);
+    const { visible, show, scheduleHide } = useHoverPanel({ hideDelay: 500, idleTimeout: 5000 });
     const [selectedId, setSelectedId] = useState<string | null>(null);
     const [isSelectorExpanded, setIsSelectorExpanded] = useState(false);
-    const hideTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
     const label = (ja: string, en: string) => locale === 'ja' ? ja : en;
-
-    // ── ホバー表示制御 ─────────────────────────────────────────────────────
-    const show = useCallback(() => {
-        if (hideTimerRef.current) clearTimeout(hideTimerRef.current);
-        setVisible(true);
-    }, []);
-
-    const scheduleHide = useCallback(() => {
-        hideTimerRef.current = setTimeout(() => setVisible(false), 300);
-    }, []);
 
     const isVisible = visible || isPinned;
 

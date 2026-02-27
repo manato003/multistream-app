@@ -34,14 +34,42 @@ function App() {
   const { history, addToHistory, removeFromHistory, reorderHistory } = useStreamHistory();
 
   useEffect(() => {
-    const onMouseMove = (e: MouseEvent) => {
-      if (headerVisibleRef.current && e.clientY > HIDE_THRESHOLD) {
-        headerVisibleRef.current = false;
-        setHeaderVisible(false);
+    const IDLE_MS = 3000;
+    let idleTimer: ReturnType<typeof setTimeout> | null = null;
+
+    const clearIdle = () => {
+      if (idleTimer) { clearTimeout(idleTimer); idleTimer = null; }
+    };
+
+    const hide = () => {
+      headerVisibleRef.current = false;
+      setHeaderVisible(false);
+      clearIdle();
+    };
+
+    const resetIdle = () => {
+      clearIdle();
+      if (headerVisibleRef.current) {
+        idleTimer = setTimeout(hide, IDLE_MS);
       }
     };
+
+    const onMouseMove = (e: MouseEvent) => {
+      if (headerVisibleRef.current && e.clientY > HIDE_THRESHOLD) { hide(); return; }
+      if (headerVisibleRef.current) resetIdle();
+    };
+
+    const onMouseLeave = (e: MouseEvent) => {
+      if (!e.relatedTarget) hide();
+    };
+
     window.addEventListener('mousemove', onMouseMove);
-    return () => window.removeEventListener('mousemove', onMouseMove);
+    document.addEventListener('mouseleave', onMouseLeave);
+    return () => {
+      window.removeEventListener('mousemove', onMouseMove);
+      document.removeEventListener('mouseleave', onMouseLeave);
+      clearIdle();
+    };
   }, []);
 
   const showHeader = useCallback(() => {
