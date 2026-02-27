@@ -165,13 +165,13 @@ body {
 
 /* コメントパネルがピン留めされているとき */
 .app-main.chat-pinned {
-  padding-right: 280px;
+  padding-right: var(--chat-width, 280px);
 }
 
 /* コメントパネルが左側のとき（パネル入れ替え時） */
 .app-main.chat-pinned.panels-swapped {
   padding-right: 0;
-  padding-left: 280px;
+  padding-left: var(--chat-width, 280px);
 }
 
 /* ===== Grid ===== */
@@ -504,7 +504,43 @@ body {
 
 /* ===== Settings Modal ===== */
 .settings-modal {
-  max-width: 360px;
+  max-width: 400px;
+}
+
+/* ショートカットテーブル */
+.shortcut-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.shortcut-table td {
+  padding: 4px 6px;
+  vertical-align: middle;
+}
+
+.shortcut-table tr:first-child td {
+  padding-top: 2px;
+}
+
+.shortcut-kbd {
+  display: inline-block;
+  background: var(--bg-primary);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-bottom-width: 2px;
+  border-radius: 4px;
+  padding: 1px 6px;
+  font-family: monospace;
+  font-size: 0.72rem;
+  color: var(--text-primary);
+  white-space: nowrap;
+  min-width: 28px;
+  text-align: center;
+}
+
+.shortcut-action {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+  padding-left: 10px;
 }
 
 .settings-section {

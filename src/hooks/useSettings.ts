@@ -3,9 +3,20 @@ import { useState, useCallback } from 'react';
 export interface AppSettings {
     /** default: 配信管理=左, コメント=右 / swapped: 配信管理=右, コメント=左 */
     panelLayout: 'default' | 'swapped';
+    /** ヘッダーを常時表示（false: 自動非表示） */
+    headerAlwaysVisible: boolean;
+    /** チャットパネル幅 (px) */
+    chatWidth: 240 | 280 | 340;
+    /** パネルのホバー感度 → useHoverPanel の hideDelay にマッピング */
+    panelSensitivity: 'slow' | 'normal' | 'fast';
 }
 
-const DEFAULT_SETTINGS: AppSettings = { panelLayout: 'default' };
+const DEFAULT_SETTINGS: AppSettings = {
+    panelLayout: 'default',
+    headerAlwaysVisible: false,
+    chatWidth: 280,
+    panelSensitivity: 'normal',
+};
 const STORAGE_KEY = 'appSettings';
 
 type UpdateSetting = <K extends keyof AppSettings>(key: K, value: AppSettings[K]) => void;

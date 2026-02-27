@@ -17,12 +17,13 @@ interface StreamSidePanelProps {
     onReorderHistory: (fromId: string, toId: string) => void;
     locale: Locale;
     swapped?: boolean;
+    hideDelay?: number;
 }
 
 const StreamSidePanel: React.FC<StreamSidePanelProps> = ({
-    streams, onToggleHidden, onRemove, onReorder, history, onAddFromHistory, onRemoveFromHistory, onReorderHistory, locale, swapped = false,
+    streams, onToggleHidden, onRemove, onReorder, history, onAddFromHistory, onRemoveFromHistory, onReorderHistory, locale, swapped = false, hideDelay = 500,
 }) => {
-    const { visible, show, scheduleHide } = useHoverPanel({ hideDelay: 500, idleTimeout: 5000 });
+    const { visible, show, scheduleHide } = useHoverPanel({ hideDelay, idleTimeout: 5000 });
 
     const { draggingId, dragOverId, handleMouseDown: handleStreamMouseDown } =
         useDragReorder('streamId', onReorder);

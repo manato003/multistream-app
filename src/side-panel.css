@@ -193,7 +193,7 @@
   position: fixed;
   top: 0;
   right: 0;
-  width: 280px;
+  width: var(--chat-width, 280px);
   height: 100%;
   background: rgba(10, 14, 23, 0.96);
   backdrop-filter: blur(12px);

@@ -10,6 +10,7 @@ interface ChatSidePanelProps {
     isPinned: boolean;
     onPinChange: (pinned: boolean) => void;
     swapped?: boolean;
+    hideDelay?: number;
 }
 
 function getChatUrl(stream: Stream): string | null {
@@ -28,8 +29,8 @@ function getChatUrl(stream: Stream): string | null {
     return null;
 }
 
-const ChatSidePanel: React.FC<ChatSidePanelProps> = ({ streams, locale, isPinned, onPinChange, swapped = false }) => {
-    const { visible, show, scheduleHide } = useHoverPanel({ hideDelay: 500, idleTimeout: 5000 });
+const ChatSidePanel: React.FC<ChatSidePanelProps> = ({ streams, locale, isPinned, onPinChange, swapped = false, hideDelay = 500 }) => {
+    const { visible, show, scheduleHide } = useHoverPanel({ hideDelay, idleTimeout: 5000 });
     const [selectedId, setSelectedId] = useState<string | null>(null);
     const [isSelectorExpanded, setIsSelectorExpanded] = useState(false);
 

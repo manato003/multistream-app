@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { Plus, MonitorPlay, Settings, Share2, HelpCircle, Languages } from 'lucide-react';
+import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts';
 import './index.css';
 import './side-panel.css';
 import StreamGrid from './components/StreamGrid';
@@ -29,11 +30,18 @@ function App() {
   const [isChatPinned, setIsChatPinned] = useState(() => localStorage.getItem('chatPinned') === 'true');
   const [settings, updateSetting] = useSettings();
   const [streams, setStreams] = useState<Stream[]>([]);
-  const [headerVisible, setHeaderVisible] = useState(false);
-  const headerVisibleRef = useRef(false);
+  const [headerVisible, setHeaderVisible] = useState(() => settings.headerAlwaysVisible);
+  const headerVisibleRef = useRef(settings.headerAlwaysVisible);
   const { history, addToHistory, removeFromHistory, reorderHistory } = useStreamHistory();
 
   useEffect(() => {
+    // 常時表示モードのときはリスナー不要
+    if (settings.headerAlwaysVisible) {
+      headerVisibleRef.current = true;
+      setHeaderVisible(true);
+      return;
+    }
+
     const IDLE_MS = 3000;
     let idleTimer: ReturnType<typeof setTimeout> | null = null;
 
@@ -70,7 +78,7 @@ function App() {
       document.removeEventListener('mouseleave', onMouseLeave);
       clearIdle();
     };
-  }, []);
+  }, [settings.headerAlwaysVisible]);
 
   const showHeader = useCallback(() => {
     headerVisibleRef.current = true;
@@ -236,10 +244,31 @@ function App() {
     setIsShareModalOpen(false);
   };
 
+  // panelSensitivity → hideDelay (ms)
+  const panelHideDelay = settings.panelSensitivity === 'slow' ? 1000
+                       : settings.panelSensitivity === 'fast' ? 200
+                       : 500;
+
+  // 開いているモーダルを1つ閉じる（Esc ショートカット用）
+  const onCloseModal = useCallback(() => {
+    if (isAddModalOpen) { setIsAddModalOpen(false); return; }
+    if (isSettingsModalOpen) { setIsSettingsModalOpen(false); return; }
+    if (isHelpModalOpen) { setIsHelpModalOpen(false); return; }
+    if (isShareModalOpen) { setIsShareModalOpen(false); return; }
+  }, [isAddModalOpen, isSettingsModalOpen, isHelpModalOpen, isShareModalOpen]);
+
+  useKeyboardShortcuts({
+    onAddStream: useCallback(() => setIsAddModalOpen(true), []),
+    onOpenSettings: useCallback(() => setIsSettingsModalOpen(true), []),
+    onOpenHelp: useCallback(() => setIsHelpModalOpen(true), []),
+    onToggleChatPin: useCallback(() => setIsChatPinned(p => !p), []),
+    onCloseModal,
+  });
+
   const visibleStreams = useMemo(() => streams.filter(s => !s.hidden), [streams]);
 
   return (
-    <div className="app-root">
+    <div className="app-root" style={{ '--chat-width': `${settings.chatWidth}px` } as React.CSSProperties}>
       <div className="header-trigger" onMouseEnter={showHeader} />
 
       <header
@@ -297,6 +326,7 @@ function App() {
           onReorderHistory={reorderHistory}
           locale={locale}
           swapped={settings.panelLayout === 'swapped'}
+          hideDelay={panelHideDelay}
         />
         <StreamGrid
           streams={visibleStreams}
@@ -314,6 +344,7 @@ function App() {
             isPinned={isChatPinned}
             onPinChange={setIsChatPinned}
             swapped={settings.panelLayout === 'swapped'}
+            hideDelay={panelHideDelay}
           />
       </main>
 
