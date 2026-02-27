@@ -58,6 +58,9 @@
 - iframeを扱う変更は特にテストを慎重に（HTML5 DnD非対応、elementFromPoint方式を使用中）
 - `StreamFrame` の `key` に `reloadKey` を含めない（全フレームリマウントのバグが再発する）
 - テーマはダークモードのみ（ライトモード復活させない）
+- UIの実装・修正時は `skills/frontend-design/SKILL.md` に従い、AI slopなデザイン（Inter フォント多用、紫グラデーション等）を避けること
+- コンポーネント作成・デザイン修正時は `skills/ui-ux-pro-max-skill-main/.claude/skills/ui-ux-pro-max/SKILL.md` を参照すること（本PJはカスタムCSS構成のため、Tailwind固有の指示は読み替えて適用）
+- CSS変数・カラーパレット・タイポグラフィはダークモード専用デザインシステムとして一貫性を維持すること
 
 ---
 
