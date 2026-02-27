@@ -38,7 +38,14 @@ const StreamSidePanel: React.FC<StreamSidePanelProps> = ({
         hideTimerRef.current = setTimeout(() => setVisible(false), 300);
     }, []);
 
-    const activeSourceIds = useMemo(() => new Set(streams.map(s => `${s.type}:${s.sourceId}`)), [streams]);
+    const activeSourceIds = useMemo(() => {
+        const ids = new Set<string>();
+        streams.forEach(s => {
+            ids.add(`${s.type}:${s.sourceId}`);
+            if (s.channelHandle) ids.add(`${s.type}:${s.channelHandle}`);
+        });
+        return ids;
+    }, [streams]);
     const availableHistory = useMemo(
         () => history.filter(e => !activeSourceIds.has(`${e.type}:${e.sourceId}`)),
         [history, activeSourceIds],
