@@ -110,10 +110,9 @@
 .side-panel-item-title {
   flex: 1;
   font-size: 0.75rem;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
   color: var(--text-primary);
+  word-break: break-word;
+  min-width: 0;
 }
 
 .side-panel-toggle-btn {

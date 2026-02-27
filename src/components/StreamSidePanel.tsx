@@ -5,6 +5,7 @@ import type { Locale } from '../i18n';
 import type { HistoryEntry } from '../hooks/useStreamHistory';
 import { useDragReorder } from '../hooks/useDragReorder';
 import { useHoverPanel } from '../hooks/useHoverPanel';
+import { PlatformIcon } from './PlatformIcon';
 
 interface StreamSidePanelProps {
     streams: Stream[];
@@ -45,6 +46,9 @@ const StreamSidePanel: React.FC<StreamSidePanelProps> = ({
 
     const label = (ja: string, en: string) => locale === 'ja' ? ja : en;
 
+    // "YouTube: @handle" → "@handle" / "Twitch: shroud" → "shroud"
+    const getDisplayName = (title: string) => title.replace(/^(YouTube|Twitch):\s*/, '');
+
     const renderStreamItem = (stream: Stream, isHidden: boolean) => {
         const isDragging = draggingId === stream.id;
         const isDragTarget = dragOverId === stream.id && draggingId !== stream.id;
@@ -65,8 +69,10 @@ const StreamSidePanel: React.FC<StreamSidePanelProps> = ({
                 >
                     <GripVertical size={12} />
                 </button>
-                <span className={`platform-dot ${stream.type}`} style={{ flexShrink: 0 }} />
-                <span className="side-panel-item-title" title={stream.title}>{stream.title}</span>
+                <PlatformIcon type={stream.type} size={14} />
+                <span className="side-panel-item-title" title={stream.title}>
+                    {getDisplayName(stream.title)}
+                </span>
                 <button
                     className="side-panel-toggle-btn"
                     onClick={() => onToggleHidden(stream.id)}
@@ -150,8 +156,10 @@ const StreamSidePanel: React.FC<StreamSidePanelProps> = ({
                                 >
                                     <GripVertical size={12} />
                                 </button>
-                                <span className={`platform-dot ${entry.type}`} style={{ flexShrink: 0 }} />
-                                <span className="side-panel-item-title" title={entry.title}>{entry.title}</span>
+                                <PlatformIcon type={entry.type} size={14} />
+                                <span className="side-panel-item-title" title={entry.title}>
+                                    {getDisplayName(entry.title)}
+                                </span>
                                 <button
                                     className="side-panel-toggle-btn"
                                     onClick={() => onAddFromHistory(entry)}
