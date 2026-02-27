@@ -97,16 +97,16 @@ const StreamFrame: React.FC<StreamFrameProps> = React.memo(({
                     <span className="stream-title-text" title={stream.title}>{stream.title}</span>
                 </div>
                 <div className="stream-frame-actions">
-                    <button className="stream-frame-action" onClick={e => { e.stopPropagation(); onHide(stream.id); }} title={locale === 'ja' ? '非表示' : 'Hide'}>
+                    <button className="stream-frame-action" onClick={e => { e.stopPropagation(); onHide(stream.id); }} title={locale === 'ja' ? '非表示' : 'Hide'} aria-label={locale === 'ja' ? '非表示' : 'Hide'}>
                         <EyeOff size={12} />
                     </button>
-                    <button className="stream-frame-action" onClick={handleReload} title={t(locale, 'reload')} disabled={isResolving}>
+                    <button className="stream-frame-action" onClick={handleReload} title={t(locale, 'reload')} aria-label={t(locale, 'reload')} disabled={isResolving}>
                         {isResolving ? <Loader size={12} className="spin" /> : <RefreshCw size={12} />}
                     </button>
-                    <button className="stream-frame-action" onClick={handlePopout} title={t(locale, 'popout')}>
+                    <button className="stream-frame-action" onClick={handlePopout} title={t(locale, 'popout')} aria-label={t(locale, 'popout')}>
                         <ExternalLink size={12} />
                     </button>
-                    <button className="stream-frame-action close-btn" onClick={handleClose} title={t(locale, 'closeStream')}>
+                    <button className="stream-frame-action close-btn" onClick={handleClose} title={t(locale, 'closeStream')} aria-label={t(locale, 'closeStream')}>
                         <X size={12} />
                     </button>
                 </div>

@@ -62,6 +62,7 @@ const StreamSidePanel: React.FC<StreamSidePanelProps> = ({
                     className="side-panel-drag-handle"
                     onMouseDown={(e) => handleStreamMouseDown(e, stream.id)}
                     title={label('ドラッグして並べ替え', 'Drag to reorder')}
+                    aria-label={label('ドラッグして並べ替え', 'Drag to reorder')}
                 >
                     <GripVertical size={12} />
                 </button>
@@ -71,6 +72,7 @@ const StreamSidePanel: React.FC<StreamSidePanelProps> = ({
                     className="side-panel-toggle-btn"
                     onClick={() => onToggleHidden(stream.id)}
                     title={isHidden ? label('再表示', 'Show') : label('非表示', 'Hide')}
+                    aria-label={isHidden ? label('再表示', 'Show') : label('非表示', 'Hide')}
                 >
                     {isHidden ? <Eye size={13} /> : <EyeOff size={13} />}
                 </button>
@@ -79,6 +81,7 @@ const StreamSidePanel: React.FC<StreamSidePanelProps> = ({
                         className="side-panel-toggle-btn danger"
                         onClick={() => onRemove(stream.id)}
                         title={label('閉じる', 'Close')}
+                        aria-label={label('閉じる', 'Close')}
                     >
                         <X size={11} />
                     </button>
@@ -144,6 +147,7 @@ const StreamSidePanel: React.FC<StreamSidePanelProps> = ({
                                     className="side-panel-drag-handle"
                                     onMouseDown={(e) => handleHistoryMouseDown(e, entry.historyId)}
                                     title={label('ドラッグして並べ替え', 'Drag to reorder')}
+                                    aria-label={label('ドラッグして並べ替え', 'Drag to reorder')}
                                 >
                                     <GripVertical size={12} />
                                 </button>
@@ -153,6 +157,7 @@ const StreamSidePanel: React.FC<StreamSidePanelProps> = ({
                                     className="side-panel-toggle-btn"
                                     onClick={() => onAddFromHistory(entry)}
                                     title={label('追加', 'Add')}
+                                    aria-label={label('追加', 'Add')}
                                 >
                                     <Plus size={13} />
                                 </button>
@@ -160,6 +165,7 @@ const StreamSidePanel: React.FC<StreamSidePanelProps> = ({
                                     className="side-panel-toggle-btn danger"
                                     onClick={() => onRemoveFromHistory(entry.historyId)}
                                     title={label('履歴から削除', 'Remove from history')}
+                                    aria-label={label('履歴から削除', 'Remove from history')}
                                 >
                                     <X size={11} />
                                 </button>
