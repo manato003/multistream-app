@@ -21,8 +21,10 @@
   border-right: 2px solid transparent;
   border-image: linear-gradient(to bottom, #8b5cf6, #ec4899) 1;
   z-index: 999;
+  opacity: 0;
   transform: translateX(calc(-100% + 2px));
-  transition: transform 0.2s ease;
+  transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1),
+              opacity 0.2s ease;
   pointer-events: none;
   display: flex;
   flex-direction: column;
@@ -30,6 +32,7 @@
 }
 
 .side-panel.visible {
+  opacity: 1;
   transform: translateX(0);
   pointer-events: auto;
 }
@@ -197,8 +200,10 @@
   border-left: 2px solid transparent;
   border-image: linear-gradient(to bottom, #8b5cf6, #ec4899) 1;
   z-index: 999;
+  opacity: 0;
   transform: translateX(100%);
-  transition: transform 0.2s ease;
+  transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1),
+              opacity 0.2s ease;
   pointer-events: none;
   display: flex;
   flex-direction: column;
@@ -206,6 +211,7 @@
 }
 
 .chat-panel.visible {
+  opacity: 1;
   transform: translateX(0);
   pointer-events: auto;
 }
