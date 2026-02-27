@@ -16,6 +16,7 @@ import type { Locale } from './i18n';
 import { useStreamHistory } from './hooks/useStreamHistory';
 import type { HistoryEntry } from './hooks/useStreamHistory';
 import { useSettings } from './hooks/useSettings';
+import { useFavorites } from './hooks/useFavorites';
 import { resolveYouTubeChannel, resolveVideoToChannel } from './utils/resolveChannelId';
 
 const HEADER_H = 36;
@@ -33,6 +34,7 @@ function App() {
   const [headerVisible, setHeaderVisible] = useState(() => settings.headerAlwaysVisible);
   const headerVisibleRef = useRef(settings.headerAlwaysVisible);
   const { history, addToHistory, removeFromHistory, reorderHistory } = useStreamHistory();
+  const { tree: favorites, allChannelIds: favoriteChannelIds, actions: favoriteActions } = useFavorites();
 
   useEffect(() => {
     // 常時表示モードのときはリスナー不要
@@ -186,6 +188,54 @@ function App() {
     }
   }, []);
 
+  // ── お気に入りから配信追加 ──
+  const handleAddFromFavorite = useCallback(async (ch: { type: 'youtube' | 'twitch'; title: string; sourceId: string; inputType: 'channel' | 'video' | 'url' }) => {
+    const streamId = crypto.randomUUID();
+
+    if (ch.type === 'youtube' && ch.inputType === 'channel') {
+      setStreams(prev => [...prev, {
+        id: streamId,
+        type: 'youtube',
+        title: ch.title,
+        sourceId: ch.sourceId,
+        inputType: 'channel',
+        channelHandle: ch.sourceId,
+        isResolving: true,
+      }]);
+      try {
+        const result = await resolveYouTubeChannel(ch.sourceId);
+        setStreams(prev => prev.map(s => s.id === streamId ? {
+          ...s,
+          sourceId: result.isLive ? result.videoId : ch.sourceId,
+          inputType: result.isLive ? 'video' : 'channel',
+          isLive: result.isLive,
+          isResolving: false,
+        } : s));
+      } catch (err) {
+        console.warn('[App] favorite add resolve failed:', err);
+        setStreams(prev => prev.map(s => s.id === streamId ? { ...s, isResolving: false } : s));
+      }
+    } else {
+      setStreams(prev => [...prev, {
+        id: streamId,
+        type: ch.type,
+        title: ch.title,
+        sourceId: ch.sourceId,
+        inputType: ch.inputType,
+      }]);
+    }
+  }, []);
+
+  // ── 履歴からお気に入りに追加 ──
+  const handleAddToFavorites = useCallback((entry: HistoryEntry) => {
+    favoriteActions.addChannel({
+      type: entry.type,
+      title: entry.title,
+      sourceId: entry.sourceId,
+      inputType: entry.inputType,
+    });
+  }, [favoriteActions]);
+
   const handleReorder = useCallback((fromId: string, toId: string) => {
     setStreams(prev => {
       const arr = [...prev];
@@ -327,6 +377,12 @@ function App() {
           locale={locale}
           swapped={settings.panelLayout === 'swapped'}
           hideDelay={panelHideDelay}
+          onOpenAddModal={() => setIsAddModalOpen(true)}
+          favorites={favorites}
+          favoriteChannelIds={favoriteChannelIds}
+          onFavoriteAction={favoriteActions}
+          onAddFromFavorite={handleAddFromFavorite}
+          onAddToFavorites={handleAddToFavorites}
         />
         <StreamGrid
           streams={visibleStreams}

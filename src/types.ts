@@ -10,3 +10,24 @@ export interface Stream {
     channelHandle?: string;   // YouTubeチャンネルの元のハンドル名（再取得に使用）
     isResolving?: boolean;    // ライブ状態取得中フラグ（trueの間はローディング表示）
 }
+
+// ── お気に入りツリー ──
+
+export interface FavoriteFolder {
+    id: string;
+    kind: 'folder';
+    name: string;
+    collapsed: boolean;
+    children: FavoriteNode[];
+}
+
+export interface FavoriteChannel {
+    id: string;
+    kind: 'channel';
+    type: 'youtube' | 'twitch';
+    title: string;
+    sourceId: string;
+    inputType: 'channel' | 'video' | 'url';
+}
+
+export type FavoriteNode = FavoriteFolder | FavoriteChannel;
