@@ -317,12 +317,13 @@ function App() {
   }, []);
 
   // ── Active stream → お気に入り追加 ──
+  // YouTube live中はsourceIdがvideo IDになっているため、channelHandleを優先する
   const handleAddStreamToFavorites = useCallback((stream: Stream) => {
     favoriteActions.addChannel({
       type: stream.type,
       title: stream.title,
-      sourceId: stream.sourceId,
-      inputType: stream.inputType,
+      sourceId: stream.channelHandle ?? stream.sourceId,
+      inputType: stream.channelHandle ? 'channel' : stream.inputType,
     });
   }, [favoriteActions]);
 

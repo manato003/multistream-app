@@ -84,6 +84,12 @@ const ShareModal: React.FC<ShareModalProps> = ({
         return encode(data);
     }, [includeStreams, includeFavorites, includeHistory, streams, favorites, history]);
 
+    // 選択されたセクションに実データがあるか
+    const hasContent =
+        (includeStreams && streams.length > 0) ||
+        (includeFavorites && favorites.length > 0) ||
+        (includeHistory && history.length > 0);
+
     const handleCopy = () => {
         navigator.clipboard.writeText(exportCode);
         setCopied(true);
@@ -172,8 +178,14 @@ const ShareModal: React.FC<ShareModalProps> = ({
                     </div>
 
                     <div className="input-row">
-                        <input type="text" className="form-input" readOnly value={exportCode} />
-                        <button className="add-btn" onClick={handleCopy} title={label('コピー', 'Copy')}>
+                        <input type="text" className="form-input" readOnly value={hasContent ? exportCode : ''} />
+                        <button
+                            className="add-btn"
+                            onClick={handleCopy}
+                            disabled={!hasContent}
+                            title={hasContent ? label('コピー', 'Copy') : label('セクションを1つ以上選択してください', 'Select at least one section')}
+                            style={!hasContent ? { opacity: 0.4, cursor: 'not-allowed' } : undefined}
+                        >
                             {copied ? <Check size={14} /> : <Copy size={14} />}
                         </button>
                     </div>
