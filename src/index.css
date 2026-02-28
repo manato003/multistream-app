@@ -174,6 +174,17 @@ body {
   padding-left: var(--chat-width, 280px);
 }
 
+/* 配信管理パネルがピン留めされているとき */
+.app-main.stream-pinned {
+  padding-left: var(--stream-panel-width, 260px);
+}
+
+/* パネルスワップ時（配信管理パネルが右側） */
+.app-main.stream-pinned.panels-swapped {
+  padding-left: 0;
+  padding-right: var(--stream-panel-width, 260px);
+}
+
 /* ===== Grid ===== */
 .stream-grid-container {
   width: 100%;

@@ -59,6 +59,12 @@
   -webkit-text-fill-color: transparent;
 }
 
+.side-panel-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
 .side-panel-add-btn {
   display: flex;
   align-items: center;
@@ -77,6 +83,28 @@
 .side-panel-add-btn:hover {
   background: rgba(139, 92, 246, 0.25);
   border-color: rgba(139, 92, 246, 0.5);
+}
+
+.side-panel-pin {
+  background: transparent;
+  border: none;
+  color: var(--text-secondary);
+  cursor: pointer;
+  padding: 3px 4px;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+  transition: color 0.1s, background 0.1s;
+}
+
+.side-panel-pin:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: var(--text-primary);
+}
+
+.side-panel-pin.active {
+  color: var(--accent);
 }
 
 .side-panel-count {
@@ -419,6 +447,110 @@
   flex-shrink: 0;
   padding: 2px;
 }
+
+/* ===== リサイズハンドル ===== */
+
+.panel-resize-handle {
+  position: absolute;
+  top: 0;
+  right: -3px;
+  width: 6px;
+  height: 100%;
+  cursor: ew-resize;
+  z-index: 1001;
+  transition: background 0.15s;
+}
+
+.panel-resize-handle.left {
+  right: auto;
+  left: -3px;
+}
+
+.panel-resize-handle:hover {
+  background: rgba(139, 92, 246, 0.35);
+}
+
+
+/* ===== 編集モード ===== */
+
+.fav-edit-btn {
+  font-size: 0.62rem;
+  font-weight: 600;
+  padding: 1px 6px !important;
+  border-radius: 3px;
+  opacity: 1 !important; /* section-header-action はデフォルト opacity: 0 なので上書き */
+  color: var(--text-secondary) !important;
+}
+
+.fav-edit-btn.active {
+  color: var(--accent) !important;
+  background: rgba(139, 92, 246, 0.15) !important;
+}
+
+.fav-checkbox {
+  width: 13px;
+  height: 13px;
+  flex-shrink: 0;
+  cursor: pointer;
+  accent-color: var(--accent);
+  margin: 0;
+}
+
+.fav-edit-bar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 8px;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+  background: rgba(139, 92, 246, 0.06);
+  flex-shrink: 0;
+}
+
+.fav-edit-bar-count {
+  font-size: 0.65rem;
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+
+.fav-edit-bar-select {
+  flex: 1;
+  min-width: 0;
+  font-size: 0.65rem;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 4px;
+  color: var(--text-primary);
+  padding: 2px 4px;
+  cursor: pointer;
+}
+
+.fav-edit-bar-select:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+.fav-edit-bar-move {
+  background: rgba(139, 92, 246, 0.2);
+  border: 1px solid rgba(139, 92, 246, 0.35);
+  border-radius: 4px;
+  color: var(--accent);
+  font-size: 0.65rem;
+  font-weight: 600;
+  padding: 2px 8px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.1s;
+}
+
+.fav-edit-bar-move:hover:not(:disabled) {
+  background: rgba(139, 92, 246, 0.35);
+}
+
+.fav-edit-bar-move:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
 
 .fav-folder.is-folder-drop-target > .fav-folder-header {
   background: rgba(139, 92, 246, 0.15);

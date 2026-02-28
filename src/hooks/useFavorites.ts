@@ -80,6 +80,18 @@ function getDepth(tree: FavoriteNode[], id: string, depth = 0): number {
     return -1;
 }
 
+/** フォルダ一覧を収集（編集モードの移動先ドロップダウン用） */
+export interface FolderInfo { id: string; name: string; depth: number }
+
+function collectFolders(tree: FavoriteNode[], out: FolderInfo[], depth = 0) {
+    for (const node of tree) {
+        if (node.kind === 'folder') {
+            out.push({ id: node.id, name: node.name, depth });
+            collectFolders(node.children, out, depth + 1);
+        }
+    }
+}
+
 /** ツリー内の全チャンネルを "type:sourceId" 形式で収集 */
 function collectChannelIds(tree: FavoriteNode[], out: Set<string>) {
     for (const node of tree) {
@@ -207,10 +219,16 @@ export function useFavorites() {
         return ids;
     }, [tree]);
 
+    const getAllFolders = useCallback((): FolderInfo[] => {
+        const out: FolderInfo[] = [];
+        collectFolders(tree, out);
+        return out;
+    }, [tree]);
+
     const actions: FavoriteActions = useMemo(() => ({
         addChannel, removeNode, createFolder, renameFolder,
         moveNode, toggleCollapse, reorderInParent,
     }), [addChannel, removeNode, createFolder, renameFolder, moveNode, toggleCollapse, reorderInParent]);
 
-    return { tree, allChannelIds, actions };
+    return { tree, allChannelIds, getAllFolders, actions };
 }

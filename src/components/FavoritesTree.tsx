@@ -12,12 +12,16 @@ interface FavoritesTreeProps {
     actions: FavoriteActions;
     onAddFromFavorite: (node: { type: 'youtube' | 'twitch'; title: string; sourceId: string; inputType: 'channel' | 'video' | 'url' }) => void;
     locale: Locale;
+    editMode?: boolean;
+    selectedIds?: Set<string>;
+    onToggleSelect?: (id: string) => void;
 }
 
 const getDisplayName = (title: string) => title.replace(/^(YouTube|Twitch):\s*/, '');
 
 const FavoritesTree: React.FC<FavoritesTreeProps> = ({
     nodes, depth = 0, activeSourceIds, actions, onAddFromFavorite, locale,
+    editMode = false, selectedIds, onToggleSelect,
 }) => {
     const label = (ja: string, en: string) => locale === 'ja' ? ja : en;
 
@@ -136,14 +140,48 @@ const FavoritesTree: React.FC<FavoritesTreeProps> = ({
                                 data-folder-drop={node.id}
                                 style={{ paddingLeft: `${8 + depth * 16}px` }}
                             >
-                                <button
-                                    className="side-panel-drag-handle"
-                                    onMouseDown={e => handleDragStart(e, node.id)}
-                                    title={label('ドラッグして移動', 'Drag to move')}
-                                    aria-label={label('ドラッグして移動', 'Drag to move')}
-                                >
-                                    <GripVertical size={12} />
-                                </button>
+                                {editMode ? (
+                                    (() => {
+                                        // フォルダ配下の全チャンネルIDを収集
+                                        const folderChannelIds: string[] = [];
+                                        const collect = (children: FavoriteNode[]) => {
+                                            children.forEach(c => {
+                                                if (c.kind === 'channel') folderChannelIds.push(c.id);
+                                                else collect(c.children);
+                                            });
+                                        };
+                                        collect(node.children);
+                                        const allSelected = folderChannelIds.length > 0 && folderChannelIds.every(id => selectedIds?.has(id));
+                                        return (
+                                            <input
+                                                type="checkbox"
+                                                className="fav-checkbox"
+                                                checked={allSelected}
+                                                onChange={() => {
+                                                    folderChannelIds.forEach(id => {
+                                                        if (allSelected || !selectedIds?.has(id)) onToggleSelect?.(id);
+                                                        else if (!allSelected && !selectedIds?.has(id)) onToggleSelect?.(id);
+                                                    });
+                                                    if (!allSelected) {
+                                                        folderChannelIds.forEach(id => { if (!selectedIds?.has(id)) onToggleSelect?.(id); });
+                                                    } else {
+                                                        folderChannelIds.forEach(id => { if (selectedIds?.has(id)) onToggleSelect?.(id); });
+                                                    }
+                                                }}
+                                                title={allSelected ? label('全解除', 'Deselect all') : label('全選択', 'Select all')}
+                                            />
+                                        );
+                                    })()
+                                ) : (
+                                    <button
+                                        className="side-panel-drag-handle"
+                                        onMouseDown={e => handleDragStart(e, node.id)}
+                                        title={label('ドラッグして移動', 'Drag to move')}
+                                        aria-label={label('ドラッグして移動', 'Drag to move')}
+                                    >
+                                        <GripVertical size={12} />
+                                    </button>
+                                )}
                                 <button
                                     className="fav-folder-toggle"
                                     onClick={() => actions.toggleCollapse(node.id)}
@@ -221,6 +259,9 @@ const FavoritesTree: React.FC<FavoritesTreeProps> = ({
                                         actions={actions}
                                         onAddFromFavorite={onAddFromFavorite}
                                         locale={locale}
+                                        editMode={editMode}
+                                        selectedIds={selectedIds}
+                                        onToggleSelect={onToggleSelect}
                                     />
                                 </div>
                             )}
@@ -246,14 +287,23 @@ const FavoritesTree: React.FC<FavoritesTreeProps> = ({
                         data-fav-id={node.id}
                         style={{ paddingLeft: `${8 + depth * 16}px` }}
                     >
-                        <button
-                            className="side-panel-drag-handle"
-                            onMouseDown={e => handleDragStart(e, node.id)}
-                            title={label('ドラッグして移動', 'Drag to move')}
-                            aria-label={label('ドラッグして移動', 'Drag to move')}
-                        >
-                            <GripVertical size={12} />
-                        </button>
+                        {editMode ? (
+                            <input
+                                type="checkbox"
+                                className="fav-checkbox"
+                                checked={selectedIds?.has(node.id) ?? false}
+                                onChange={() => onToggleSelect?.(node.id)}
+                            />
+                        ) : (
+                            <button
+                                className="side-panel-drag-handle"
+                                onMouseDown={e => handleDragStart(e, node.id)}
+                                title={label('ドラッグして移動', 'Drag to move')}
+                                aria-label={label('ドラッグして移動', 'Drag to move')}
+                            >
+                                <GripVertical size={12} />
+                            </button>
+                        )}
                         <PlatformIcon type={node.type} size={14} />
                         <span className="fav-channel-title" title={node.title}>
                             {getDisplayName(node.title)}

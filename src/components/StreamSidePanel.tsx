@@ -1,11 +1,12 @@
-import React, { useMemo, useState } from 'react';
-import { EyeOff, Eye, Plus, X, Clock, GripVertical, ChevronRight, Star, FolderPlus } from 'lucide-react';
+import React, { useMemo, useState, useEffect } from 'react';
+import { EyeOff, Eye, Plus, X, Clock, GripVertical, ChevronRight, Star, FolderPlus, Pin, PinOff } from 'lucide-react';
 import type { Stream, FavoriteNode } from '../types';
 import type { Locale } from '../i18n';
 import type { HistoryEntry } from '../hooks/useStreamHistory';
-import type { FavoriteActions } from '../hooks/useFavorites';
+import type { FavoriteActions, FolderInfo } from '../hooks/useFavorites';
 import { useDragReorder } from '../hooks/useDragReorder';
 import { useHoverPanel } from '../hooks/useHoverPanel';
+import { useResizable } from '../hooks/useResizable';
 import { PlatformIcon } from './PlatformIcon';
 import FavoritesTree from './FavoritesTree';
 
@@ -49,6 +50,9 @@ interface StreamSidePanelProps {
     onFavoriteAction: FavoriteActions;
     onAddFromFavorite: (ch: { type: 'youtube' | 'twitch'; title: string; sourceId: string; inputType: 'channel' | 'video' | 'url' }) => void;
     onAddToFavorites: (entry: HistoryEntry) => void;
+    isPinned?: boolean;
+    onPinChange?: (pinned: boolean) => void;
+    getFavFolders?: () => FolderInfo[];
 }
 
 const StreamSidePanel: React.FC<StreamSidePanelProps> = ({
@@ -56,8 +60,23 @@ const StreamSidePanel: React.FC<StreamSidePanelProps> = ({
     history, onAddFromHistory, onRemoveFromHistory, onReorderHistory,
     locale, swapped = false, hideDelay = 500,
     onOpenAddModal, favorites, favoriteChannelIds, onFavoriteAction, onAddFromFavorite, onAddToFavorites,
+    isPinned = false, onPinChange, getFavFolders,
 }) => {
-    const { visible, show, scheduleHide } = useHoverPanel({ hideDelay, idleTimeout: 5000 });
+    const { visible, show, scheduleHide } = useHoverPanel({ hideDelay, idleTimeout: 5000, isPinned });
+
+    // ── リサイズ ──
+    const { width: panelWidth, handleMouseDown: handleResizeMouseDown } = useResizable({
+        storageKey: 'streamPanelWidth',
+        defaultWidth: 260,
+        min: 200,
+        max: 480,
+        direction: swapped ? 'left' : 'right',
+    });
+
+    // CSS 変数 --stream-panel-width を幅に合わせて更新（ピン留め padding と連動）
+    useEffect(() => {
+        document.documentElement.style.setProperty('--stream-panel-width', `${panelWidth}px`);
+    }, [panelWidth]);
 
     // ── セクション折りたたみ ──
     const [sections, setSections] = useState<SectionState>(loadSections);
@@ -104,6 +123,31 @@ const StreamSidePanel: React.FC<StreamSidePanelProps> = ({
     // ── ルートフォルダ作成のトリガー ──
     const [creatingRootFolder, setCreatingRootFolder] = useState(false);
     const [rootFolderName, setRootFolderName] = useState('');
+
+    // ── お気に入り編集モード ──
+    const [editMode, setEditMode] = useState(false);
+    const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+    const [moveTargetId, setMoveTargetId] = useState<string>('__root__'); // '__root__' = ルート
+
+    const toggleSelect = (id: string) => {
+        setSelectedIds(prev => {
+            const next = new Set(prev);
+            next.has(id) ? next.delete(id) : next.add(id);
+            return next;
+        });
+    };
+
+    const handleBulkMove = () => {
+        const target = moveTargetId === '__root__' ? null : moveTargetId;
+        selectedIds.forEach(id => onFavoriteAction.moveNode(id, target));
+        setSelectedIds(new Set());
+    };
+
+    const exitEditMode = () => {
+        setEditMode(false);
+        setSelectedIds(new Set());
+        setMoveTargetId('__root__');
+    };
 
     const renderStreamItem = (stream: Stream, isHidden: boolean) => {
         const isDragging = draggingId === stream.id;
@@ -160,22 +204,37 @@ const StreamSidePanel: React.FC<StreamSidePanelProps> = ({
             />
             <div
                 className={`side-panel${visible ? ' visible' : ''}${swapped ? ' right' : ''}`}
+                style={{ width: `${panelWidth}px` }}
                 onMouseEnter={show}
                 onMouseLeave={scheduleHide}
             >
+                <div
+                    className={`panel-resize-handle${swapped ? ' left' : ''}`}
+                    onMouseDown={handleResizeMouseDown}
+                />
                 {/* ── ヘッダー ── */}
                 <div className="side-panel-header">
                     <div className="side-panel-header-row">
                         <span className="side-panel-title">{label('配信管理', 'Streams')}</span>
-                        <button
-                            className="side-panel-add-btn"
-                            onClick={onOpenAddModal}
-                            title={label('配信を追加', 'Add stream')}
-                            aria-label={label('配信を追加', 'Add stream')}
-                        >
-                            <Plus size={13} />
-                            <span>{label('追加', 'Add')}</span>
-                        </button>
+                        <div className="side-panel-header-actions">
+                            <button
+                                className="side-panel-add-btn"
+                                onClick={onOpenAddModal}
+                                title={label('配信を追加', 'Add stream')}
+                                aria-label={label('配信を追加', 'Add stream')}
+                            >
+                                <Plus size={13} />
+                                <span>{label('追加', 'Add')}</span>
+                            </button>
+                            <button
+                                className={`side-panel-pin${isPinned ? ' active' : ''}`}
+                                onClick={() => onPinChange?.(!isPinned)}
+                                title={isPinned ? label('ピン解除', 'Unpin') : label('ピン留め', 'Pin')}
+                                aria-label={isPinned ? label('ピン解除', 'Unpin') : label('ピン留め', 'Pin')}
+                            >
+                                {isPinned ? <PinOff size={13} /> : <Pin size={13} />}
+                            </button>
+                        </div>
                     </div>
                     <span className="side-panel-count">
                         {(() => {
@@ -210,18 +269,33 @@ const StreamSidePanel: React.FC<StreamSidePanelProps> = ({
                             {label('お気に入り', 'Favorites')}
                             {favChannelCount > 0 && ` (${favChannelCount})`}
                         </span>
+                        {!editMode && (
+                            <button
+                                className="section-header-action"
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    setCreatingRootFolder(true);
+                                    if (sections.favorites) toggleSection('favorites');
+                                }}
+                                title={label('フォルダを追加', 'Add folder')}
+                                aria-label={label('フォルダを追加', 'Add folder')}
+                            >
+                                <FolderPlus size={12} />
+                            </button>
+                        )}
                         <button
-                            className="section-header-action"
+                            className={`section-header-action fav-edit-btn${editMode ? ' active' : ''}`}
                             onClick={(e) => {
                                 e.stopPropagation();
-                                setCreatingRootFolder(true);
-                                // セクションを展開
-                                if (sections.favorites) toggleSection('favorites');
+                                if (editMode) { exitEditMode(); } else {
+                                    setEditMode(true);
+                                    if (sections.favorites) toggleSection('favorites');
+                                }
                             }}
-                            title={label('フォルダを追加', 'Add folder')}
-                            aria-label={label('フォルダを追加', 'Add folder')}
+                            title={editMode ? label('編集終了', 'Done') : label('編集', 'Edit')}
+                            aria-label={editMode ? label('編集終了', 'Done') : label('編集', 'Edit')}
                         >
-                            <FolderPlus size={12} />
+                            {editMode ? label('完了', 'Done') : label('編集', 'Edit')}
                         </button>
                     </div>
                     {!sections.favorites && (
@@ -262,6 +336,9 @@ const StreamSidePanel: React.FC<StreamSidePanelProps> = ({
                                 actions={onFavoriteAction}
                                 onAddFromFavorite={onAddFromFavorite}
                                 locale={locale}
+                                editMode={editMode}
+                                selectedIds={selectedIds}
+                                onToggleSelect={toggleSelect}
                             />
                             {favorites.length === 0 && !creatingRootFolder && (
                                 <div className="side-panel-empty" style={{ fontSize: '0.68rem' }}>
@@ -269,6 +346,35 @@ const StreamSidePanel: React.FC<StreamSidePanelProps> = ({
                                         '履歴の★からチャンネルを追加',
                                         'Add channels from history ★',
                                     )}
+                                </div>
+                            )}
+                            {/* ── 編集モード: 移動バー ── */}
+                            {editMode && (
+                                <div className="fav-edit-bar">
+                                    <span className="fav-edit-bar-count">
+                                        {label(`${selectedIds.size}件選択`, `${selectedIds.size} selected`)}
+                                    </span>
+                                    <select
+                                        className="fav-edit-bar-select"
+                                        value={moveTargetId}
+                                        onChange={e => setMoveTargetId(e.target.value)}
+                                        aria-label={label('移動先フォルダ', 'Target folder')}
+                                    >
+                                        <option value="__root__">{label('ルート', 'Root')}</option>
+                                        {(getFavFolders?.() ?? []).map(f => (
+                                            <option key={f.id} value={f.id}>
+                                                {'　'.repeat(f.depth)}{f.name}
+                                            </option>
+                                        ))}
+                                    </select>
+                                    <button
+                                        className="fav-edit-bar-move"
+                                        onClick={handleBulkMove}
+                                        disabled={selectedIds.size === 0}
+                                        aria-label={label('移動', 'Move')}
+                                    >
+                                        {label('移動', 'Move')}
+                                    </button>
                                 </div>
                             )}
                         </div>

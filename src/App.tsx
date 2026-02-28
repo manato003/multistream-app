@@ -29,12 +29,13 @@ function App() {
   const [isHelpModalOpen, setIsHelpModalOpen] = useState(false);
   const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
   const [isChatPinned, setIsChatPinned] = useState(() => localStorage.getItem('chatPinned') === 'true');
+  const [isStreamPinned, setIsStreamPinned] = useState(() => localStorage.getItem('streamPinned') === 'true');
   const [settings, updateSetting] = useSettings();
   const [streams, setStreams] = useState<Stream[]>([]);
   const [headerVisible, setHeaderVisible] = useState(() => settings.headerAlwaysVisible);
   const headerVisibleRef = useRef(settings.headerAlwaysVisible);
   const { history, addToHistory, removeFromHistory, reorderHistory } = useStreamHistory();
-  const { tree: favorites, allChannelIds: favoriteChannelIds, actions: favoriteActions } = useFavorites();
+  const { tree: favorites, allChannelIds: favoriteChannelIds, getAllFolders: getFavFolders, actions: favoriteActions } = useFavorites();
 
   useEffect(() => {
     // 常時表示モードのときはリスナー不要
@@ -104,6 +105,10 @@ function App() {
   useEffect(() => {
     localStorage.setItem('chatPinned', String(isChatPinned));
   }, [isChatPinned]);
+
+  useEffect(() => {
+    localStorage.setItem('streamPinned', String(isStreamPinned));
+  }, [isStreamPinned]);
 
   const handleLocaleChange = useCallback(() => {
     const next: Locale = locale === 'ja' ? 'en' : 'ja';
@@ -364,7 +369,7 @@ function App() {
         </div>
       </header>
 
-      <main className={`app-main${isChatPinned ? ' chat-pinned' : ''}${settings.panelLayout === 'swapped' ? ' panels-swapped' : ''}`}>
+      <main className={`app-main${isChatPinned ? ' chat-pinned' : ''}${isStreamPinned ? ' stream-pinned' : ''}${settings.panelLayout === 'swapped' ? ' panels-swapped' : ''}`}>
         <StreamSidePanel
           streams={streams}
           onToggleHidden={handleToggleHidden}
@@ -383,6 +388,9 @@ function App() {
           onFavoriteAction={favoriteActions}
           onAddFromFavorite={handleAddFromFavorite}
           onAddToFavorites={handleAddToFavorites}
+          isPinned={isStreamPinned}
+          onPinChange={setIsStreamPinned}
+          getFavFolders={getFavFolders}
         />
         <StreamGrid
           streams={visibleStreams}
