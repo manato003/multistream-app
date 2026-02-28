@@ -840,6 +840,44 @@ body {
   background: var(--border);
 }
 
+/* ── Share modal section toggles ── */
+.share-section-toggles {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  margin-bottom: 8px;
+}
+
+.share-section-toggle {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 0.82rem;
+  color: var(--text-primary);
+  cursor: pointer;
+  padding: 4px 6px;
+  border-radius: 5px;
+  transition: background 0.1s;
+}
+
+.share-section-toggle:hover {
+  background: var(--bg-tertiary);
+}
+
+.share-section-toggle input[type="checkbox"] {
+  accent-color: var(--accent);
+  width: 14px;
+  height: 14px;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.share-section-count {
+  color: var(--text-secondary);
+  font-size: 0.75rem;
+  margin-left: auto;
+}
+
 .platform-selector {
   display: flex;
   border: 1px solid var(--border);

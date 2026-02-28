@@ -1,27 +1,88 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { X, Copy, Check, Download } from 'lucide-react';
 import { t } from '../i18n';
 import type { Locale } from '../i18n';
-import type { Stream } from '../types';
+import type { Stream, FavoriteNode } from '../types';
+import type { HistoryEntry } from '../hooks/useStreamHistory';
+
+// ── v2 share format ──────────────────────────────────────────────────────────
+
+type StreamExport = Pick<Stream, 'type' | 'title' | 'sourceId' | 'inputType' | 'startTime'>;
+
+interface ShareDataV2 {
+    v: 2;
+    streams?: StreamExport[];
+    favorites?: FavoriteNode[];
+    history?: HistoryEntry[];
+}
+
+function encode(data: ShareDataV2): string {
+    return btoa(encodeURIComponent(JSON.stringify(data)));
+}
+
+// ── props ────────────────────────────────────────────────────────────────────
 
 interface ShareModalProps {
     onClose: () => void;
     streams: Stream[];
-    onApply: (streams: Stream[]) => void;
+    favorites: FavoriteNode[];
+    history: HistoryEntry[];
+    onApplyStreams: (streams: Stream[]) => void;
+    onApplyFavorites: (nodes: FavoriteNode[]) => void;
+    onApplyHistory: (entries: HistoryEntry[]) => void;
     locale: Locale;
 }
 
-const ShareModal: React.FC<ShareModalProps> = ({ onClose, streams, onApply, locale }) => {
+// ── component ────────────────────────────────────────────────────────────────
+
+const ShareModal: React.FC<ShareModalProps> = ({
+    onClose,
+    streams,
+    favorites,
+    history,
+    onApplyStreams,
+    onApplyFavorites,
+    onApplyHistory,
+    locale,
+}) => {
+    const label = (ja: string, en: string) => locale === 'ja' ? ja : en;
+
+    // export section toggles
+    const [includeStreams, setIncludeStreams] = useState(true);
+    const [includeFavorites, setIncludeFavorites] = useState(true);
+    const [includeHistory, setIncludeHistory] = useState(true);
+
+    // import
     const [importCode, setImportCode] = useState('');
     const [copied, setCopied] = useState(false);
 
-    const exportCode = btoa(encodeURIComponent(JSON.stringify(streams.map(s => ({
-        type: s.type,
-        title: s.title,
-        sourceId: s.sourceId,
-        inputType: s.inputType,
-        startTime: s.startTime
-    })))));
+    // compute counts of flat favorites (channels only, for display)
+    const favCount = useMemo(() => {
+        const count = (nodes: FavoriteNode[]): number =>
+            nodes.reduce((acc, n) => acc + (n.kind === 'channel' ? 1 : count(n.children)), 0);
+        return count(favorites);
+    }, [favorites]);
+
+    // build export code reactively
+    const exportCode = useMemo(() => {
+        const data: ShareDataV2 = { v: 2 };
+        if (includeStreams && streams.length > 0) {
+            data.streams = streams.map(s => ({
+                type: s.type,
+                title: s.title,
+                sourceId: s.sourceId,
+                inputType: s.inputType,
+                startTime: s.startTime,
+            }));
+        }
+        if (includeFavorites && favorites.length > 0) {
+            data.favorites = favorites;
+        }
+        if (includeHistory && history.length > 0) {
+            data.history = history;
+        }
+        return encode(data);
+    }, [includeStreams, includeFavorites, includeHistory, streams, favorites, history]);
 
     const handleCopy = () => {
         navigator.clipboard.writeText(exportCode);
@@ -33,18 +94,37 @@ const ShareModal: React.FC<ShareModalProps> = ({ onClose, streams, onApply, loca
         if (!importCode.trim()) return;
         try {
             const decoded = JSON.parse(decodeURIComponent(atob(importCode.trim())));
+
             if (Array.isArray(decoded)) {
-                const newStreams = decoded.map((s: any) => ({
+                // v1 backward compat: plain stream array
+                const newStreams: Stream[] = decoded.map((s: StreamExport) => ({
                     ...s,
-                    id: crypto.randomUUID()
+                    id: crypto.randomUUID(),
                 }));
-                onApply(newStreams);
+                onApplyStreams(newStreams);
+            } else if (decoded && decoded.v === 2) {
+                // v2: apply each present section
+                const d = decoded as ShareDataV2;
+                if (d.streams) {
+                    const newStreams: Stream[] = d.streams.map((s: StreamExport) => ({
+                        ...s,
+                        id: crypto.randomUUID(),
+                    }));
+                    onApplyStreams(newStreams);
+                }
+                if (d.favorites) {
+                    onApplyFavorites(d.favorites);
+                }
+                if (d.history) {
+                    onApplyHistory(d.history);
+                }
             } else {
-                throw new Error('Invalid format');
+                throw new Error('Unknown format');
             }
+            onClose();
         } catch (e) {
             console.error('Import error:', e);
-            alert('Invalid layout code!');
+            alert(label('無効なコードです', 'Invalid layout code!'));
         }
     };
 
@@ -56,11 +136,44 @@ const ShareModal: React.FC<ShareModalProps> = ({ onClose, streams, onApply, loca
                     <button className="icon-button" onClick={onClose}><X size={18} /></button>
                 </div>
 
+                {/* ── Export section ──────────────────────────────────── */}
                 <div className="form-group">
                     <label className="form-label">{t(locale, 'exportCode')}</label>
+
+                    {/* section toggles */}
+                    <div className="share-section-toggles">
+                        <label className="share-section-toggle">
+                            <input
+                                type="checkbox"
+                                checked={includeStreams}
+                                onChange={e => setIncludeStreams(e.target.checked)}
+                            />
+                            <span>{label('追加済配信', 'Active Streams')}</span>
+                            <span className="share-section-count">({streams.length})</span>
+                        </label>
+                        <label className="share-section-toggle">
+                            <input
+                                type="checkbox"
+                                checked={includeFavorites}
+                                onChange={e => setIncludeFavorites(e.target.checked)}
+                            />
+                            <span>{label('お気に入り', 'Favorites')}</span>
+                            <span className="share-section-count">({favCount})</span>
+                        </label>
+                        <label className="share-section-toggle">
+                            <input
+                                type="checkbox"
+                                checked={includeHistory}
+                                onChange={e => setIncludeHistory(e.target.checked)}
+                            />
+                            <span>{label('履歴', 'History')}</span>
+                            <span className="share-section-count">({history.length})</span>
+                        </label>
+                    </div>
+
                     <div className="input-row">
                         <input type="text" className="form-input" readOnly value={exportCode} />
-                        <button className="add-btn" onClick={handleCopy}>
+                        <button className="add-btn" onClick={handleCopy} title={label('コピー', 'Copy')}>
                             {copied ? <Check size={14} /> : <Copy size={14} />}
                         </button>
                     </div>
@@ -68,6 +181,7 @@ const ShareModal: React.FC<ShareModalProps> = ({ onClose, streams, onApply, loca
 
                 <div className="form-divider"><span>or</span></div>
 
+                {/* ── Import section ──────────────────────────────────── */}
                 <div className="form-group">
                     <label className="form-label">{t(locale, 'importCode')}</label>
                     <div className="input-row" style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
@@ -78,7 +192,11 @@ const ShareModal: React.FC<ShareModalProps> = ({ onClose, streams, onApply, loca
                             value={importCode}
                             onChange={e => setImportCode(e.target.value)}
                         />
-                        <button className="primary-button" style={{ width: '100%', justifyContent: 'center' }} onClick={handleImport}>
+                        <button
+                            className="primary-button"
+                            style={{ width: '100%', justifyContent: 'center' }}
+                            onClick={handleImport}
+                        >
                             <Download size={14} />
                             {t(locale, 'importCode')}
                         </button>

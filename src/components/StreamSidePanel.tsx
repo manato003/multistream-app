@@ -53,6 +53,7 @@ interface StreamSidePanelProps {
     isPinned?: boolean;
     onPinChange?: (pinned: boolean) => void;
     getFavFolders?: () => FolderInfo[];
+    onAddStreamToFavorites?: (stream: Stream) => void;
 }
 
 const StreamSidePanel: React.FC<StreamSidePanelProps> = ({
@@ -62,6 +63,7 @@ const StreamSidePanel: React.FC<StreamSidePanelProps> = ({
     onOpenAddModal, favorites, favoriteChannelIds, onFavoriteAction, onAddFromFavorite,
     onAddToFavorites, onBulkAddFromFolder,
     isPinned = false, onPinChange, getFavFolders,
+    onAddStreamToFavorites,
 }) => {
     const { visible, show, scheduleHide } = useHoverPanel({ hideDelay, idleTimeout: 5000, isPinned });
 
@@ -219,6 +221,11 @@ const StreamSidePanel: React.FC<StreamSidePanelProps> = ({
             isDragTarget ? 'is-drag-target' : '',
         ].filter(Boolean).join(' ');
 
+        // お気に入り登録チェック（channelHandle も含む）
+        const isFaved =
+            favoriteChannelIds.has(`${stream.type}:${stream.sourceId}`) ||
+            (stream.channelHandle ? favoriteChannelIds.has(`${stream.type}:${stream.channelHandle}`) : false);
+
         return (
             <div key={stream.id} className={cls} data-stream-id={stream.id}>
                 <button
@@ -233,6 +240,17 @@ const StreamSidePanel: React.FC<StreamSidePanelProps> = ({
                 <span className="side-panel-item-title" title={stream.title}>
                     {getDisplayName(stream.title)}
                 </span>
+                {/* お気に入り未登録時のみ★ボタンを表示 */}
+                {!isFaved && onAddStreamToFavorites && (
+                    <button
+                        className="side-panel-toggle-btn"
+                        onClick={() => onAddStreamToFavorites(stream)}
+                        title={label('お気に入りに追加', 'Add to favorites')}
+                        aria-label={label('お気に入りに追加', 'Add to favorites')}
+                    >
+                        <Star size={12} />
+                    </button>
+                )}
                 <button
                     className="side-panel-toggle-btn"
                     onClick={() => onToggleHidden(stream.id)}
@@ -278,15 +296,6 @@ const StreamSidePanel: React.FC<StreamSidePanelProps> = ({
                         <span className="side-panel-title">{label('配信管理', 'Streams')}</span>
                         <div className="side-panel-header-actions">
                             <button
-                                className="side-panel-add-btn"
-                                onClick={onOpenAddModal}
-                                title={label('配信を追加', 'Add stream')}
-                                aria-label={label('配信を追加', 'Add stream')}
-                            >
-                                <Plus size={13} />
-                                <span>{label('追加', 'Add')}</span>
-                            </button>
-                            <button
                                 className={`side-panel-pin${isPinned ? ' active' : ''}`}
                                 onClick={() => onPinChange?.(!isPinned)}
                                 title={isPinned ? label('ピン解除', 'Unpin') : label('ピン留め', 'Pin')}
@@ -296,6 +305,16 @@ const StreamSidePanel: React.FC<StreamSidePanelProps> = ({
                             </button>
                         </div>
                     </div>
+                    {/* 追加ボタン（中央配置） */}
+                    <button
+                        className="side-panel-add-btn side-panel-add-btn--center"
+                        onClick={onOpenAddModal}
+                        title={label('配信を追加', 'Add stream')}
+                        aria-label={label('配信を追加', 'Add stream')}
+                    >
+                        <Plus size={13} />
+                        <span>{label('追加', 'Add')}</span>
+                    </button>
                     <span className="side-panel-count">
                         {(() => {
                             const hiddenCount = streams.filter(s => s.hidden).length;

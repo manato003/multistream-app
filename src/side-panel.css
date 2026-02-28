@@ -85,6 +85,12 @@
   border-color: rgba(139, 92, 246, 0.5);
 }
 
+.side-panel-add-btn--center {
+  width: 100%;
+  justify-content: center;
+  margin: 6px 0 2px;
+}
+
 .side-panel-pin {
   background: transparent;
   border: none;

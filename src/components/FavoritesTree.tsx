@@ -32,6 +32,9 @@ const FavoritesTree: React.FC<FavoritesTreeProps> = ({
     const [dragOverId, setDragOverId] = useState<string | null>(null);
     const [dragOverFolderId, setDragOverFolderId] = useState<string | null>(null);
     const draggingIdRef = useRef<string | null>(null);
+    // stale closure 防止: onMouseUp内で読む値はrefで管理する
+    const dragOverIdRef = useRef<string | null>(null);
+    const dragOverFolderIdRef = useRef<string | null>(null);
 
     // ── フォルダ名入力 ──
     const [creatingInFolderId, setCreatingInFolderId] = useState<string | null>(null);
@@ -68,6 +71,9 @@ const FavoritesTree: React.FC<FavoritesTreeProps> = ({
                 target = target.parentElement;
             }
 
+            // refも同期更新（onMouseUpのstale closure防止）
+            dragOverIdRef.current = favId;
+            dragOverFolderIdRef.current = folderId;
             setDragOverId(favId);
             setDragOverFolderId(folderId);
         };
@@ -78,13 +84,16 @@ const FavoritesTree: React.FC<FavoritesTreeProps> = ({
 
             const fromId = draggingIdRef.current;
 
-            if (fromId && dragOverFolderId && fromId !== dragOverFolderId) {
-                actions.moveNode(fromId, dragOverFolderId);
-            } else if (fromId && dragOverId && fromId !== dragOverId) {
-                actions.reorderInParent(fromId, dragOverId);
+            // stale closure防止: state変数ではなくrefから読む
+            if (fromId && dragOverFolderIdRef.current && fromId !== dragOverFolderIdRef.current) {
+                actions.moveNode(fromId, dragOverFolderIdRef.current);
+            } else if (fromId && dragOverIdRef.current && fromId !== dragOverIdRef.current) {
+                actions.reorderInParent(fromId, dragOverIdRef.current);
             }
 
             draggingIdRef.current = null;
+            dragOverIdRef.current = null;
+            dragOverFolderIdRef.current = null;
             setDraggingId(null);
             setDragOverId(null);
             setDragOverFolderId(null);
@@ -92,7 +101,7 @@ const FavoritesTree: React.FC<FavoritesTreeProps> = ({
 
         window.addEventListener('mousemove', onMouseMove);
         window.addEventListener('mouseup', onMouseUp);
-    }, [actions, dragOverId, dragOverFolderId]);
+    }, [actions]); // dragOverId/dragOverFolderIdはrefで管理するため依存から除外
 
     const handleCreateFolder = (parentId: string | null) => {
         setCreatingInFolderId(parentId);

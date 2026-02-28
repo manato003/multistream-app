@@ -68,5 +68,11 @@ export function useStreamHistory() {
         });
     }, []);
 
-    return { history, addToHistory, removeFromHistory, reorderHistory };
+    const importHistory = useCallback((entries: HistoryEntry[]) => {
+        const next = entries.map(e => ({ ...e, historyId: crypto.randomUUID() }));
+        save(next);
+        setHistory(next);
+    }, []);
+
+    return { history, addToHistory, removeFromHistory, reorderHistory, importHistory };
 }

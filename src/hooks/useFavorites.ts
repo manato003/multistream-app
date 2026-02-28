@@ -247,10 +247,22 @@ export function useFavorites() {
         return out;
     }, [tree]);
 
+    /** インポート: ツリーを丸ごと置換（ID再生成で衝突防止） */
+    const importTree = useCallback((nodes: FavoriteNode[]) => {
+        const regen = (ns: FavoriteNode[]): FavoriteNode[] => ns.map(n =>
+            n.kind === 'folder'
+                ? { ...n, id: crypto.randomUUID(), children: regen(n.children) }
+                : { ...n, id: crypto.randomUUID() }
+        );
+        const next = regen(nodes);
+        save(next);
+        setTree(next);
+    }, []);
+
     const actions: FavoriteActions = useMemo(() => ({
         addChannel, removeNode, createFolder, renameFolder,
         moveNode, toggleCollapse, reorderInParent,
     }), [addChannel, removeNode, createFolder, renameFolder, moveNode, toggleCollapse, reorderInParent]);
 
-    return { tree, allChannelIds, getAllFolders, actions };
+    return { tree, allChannelIds, getAllFolders, actions, importTree };
 }

@@ -34,8 +34,8 @@ function App() {
   const [streams, setStreams] = useState<Stream[]>([]);
   const [headerVisible, setHeaderVisible] = useState(() => settings.headerAlwaysVisible);
   const headerVisibleRef = useRef(settings.headerAlwaysVisible);
-  const { history, addToHistory, removeFromHistory, reorderHistory } = useStreamHistory();
-  const { tree: favorites, allChannelIds: favoriteChannelIds, getAllFolders: getFavFolders, actions: favoriteActions } = useFavorites();
+  const { history, addToHistory, removeFromHistory, reorderHistory, importHistory } = useStreamHistory();
+  const { tree: favorites, allChannelIds: favoriteChannelIds, getAllFolders: getFavFolders, actions: favoriteActions, importTree } = useFavorites();
 
   useEffect(() => {
     // 常時表示モードのときはリスナー不要
@@ -311,10 +311,20 @@ function App() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const handleApplyConfig = (newStreams: Stream[]) => {
+  // ── Share modal handlers ──
+  const handleApplyStreams = useCallback((newStreams: Stream[]) => {
     setStreams(newStreams);
-    setIsShareModalOpen(false);
-  };
+  }, []);
+
+  // ── Active stream → お気に入り追加 ──
+  const handleAddStreamToFavorites = useCallback((stream: Stream) => {
+    favoriteActions.addChannel({
+      type: stream.type,
+      title: stream.title,
+      sourceId: stream.sourceId,
+      inputType: stream.inputType,
+    });
+  }, [favoriteActions]);
 
   // panelSensitivity → hideDelay (ms)
   const panelHideDelay = settings.panelSensitivity === 'slow' ? 1000
@@ -409,6 +419,7 @@ function App() {
           isPinned={isStreamPinned}
           onPinChange={setIsStreamPinned}
           getFavFolders={getFavFolders}
+          onAddStreamToFavorites={handleAddStreamToFavorites}
         />
         <StreamGrid
           streams={visibleStreams}
@@ -444,7 +455,11 @@ function App() {
         <ShareModal
           onClose={() => setIsShareModalOpen(false)}
           streams={streams}
-          onApply={handleApplyConfig}
+          favorites={favorites}
+          history={history}
+          onApplyStreams={handleApplyStreams}
+          onApplyFavorites={importTree}
+          onApplyHistory={importHistory}
           locale={locale}
         />
       )}
