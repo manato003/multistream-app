@@ -16,7 +16,7 @@ import type { Locale } from './i18n';
 import { useStreamHistory } from './hooks/useStreamHistory';
 import type { HistoryEntry } from './hooks/useStreamHistory';
 import { useSettings } from './hooks/useSettings';
-import { useFavorites } from './hooks/useFavorites';
+import { useFavorites, collectChannelsFromFolder } from './hooks/useFavorites';
 import { resolveYouTubeChannel, resolveVideoToChannel } from './utils/resolveChannelId';
 
 const HEADER_H = 36;
@@ -231,15 +231,32 @@ function App() {
     }
   }, []);
 
-  // ── 履歴からお気に入りに追加 ──
-  const handleAddToFavorites = useCallback((entry: HistoryEntry) => {
+  // ── 履歴からお気に入りに追加（フォルダ指定可） ──
+  const handleAddToFavorites = useCallback((entry: HistoryEntry, folderId?: string | null) => {
     favoriteActions.addChannel({
       type: entry.type,
       title: entry.title,
       sourceId: entry.sourceId,
       inputType: entry.inputType,
-    });
+    }, folderId ?? null);
   }, [favoriteActions]);
+
+  // ── フォルダ内の全チャンネルを一括追加 ──
+  const handleBulkAddFromFolder = useCallback((folderId: string) => {
+    const channels = collectChannelsFromFolder(favorites, folderId);
+    channels.forEach(ch => {
+      const key = `${ch.type}:${ch.sourceId}`;
+      const isAlreadyActive = streams.some(s => `${s.type}:${s.sourceId}` === key);
+      if (!isAlreadyActive) {
+        handleAddFromFavorite({
+          type: ch.type,
+          title: ch.title,
+          sourceId: ch.sourceId,
+          inputType: ch.inputType,
+        });
+      }
+    });
+  }, [favorites, streams, handleAddFromFavorite]);
 
   const handleReorder = useCallback((fromId: string, toId: string) => {
     setStreams(prev => {
@@ -388,6 +405,7 @@ function App() {
           onFavoriteAction={favoriteActions}
           onAddFromFavorite={handleAddFromFavorite}
           onAddToFavorites={handleAddToFavorites}
+          onBulkAddFromFolder={handleBulkAddFromFolder}
           isPinned={isStreamPinned}
           onPinChange={setIsStreamPinned}
           getFavFolders={getFavFolders}

@@ -1,5 +1,5 @@
-import React, { useMemo, useState, useEffect } from 'react';
-import { EyeOff, Eye, Plus, X, Clock, GripVertical, ChevronRight, Star, FolderPlus, Pin, PinOff } from 'lucide-react';
+import React, { useMemo, useState, useEffect, useCallback } from 'react';
+import { EyeOff, Eye, Plus, X, Clock, GripVertical, ChevronRight, Star, FolderPlus, Pin, PinOff, ArrowRight, Trash2 } from 'lucide-react';
 import type { Stream, FavoriteNode } from '../types';
 import type { Locale } from '../i18n';
 import type { HistoryEntry } from '../hooks/useStreamHistory';
@@ -43,13 +43,13 @@ interface StreamSidePanelProps {
     locale: Locale;
     swapped?: boolean;
     hideDelay?: number;
-    // NEW
     onOpenAddModal: () => void;
     favorites: FavoriteNode[];
     favoriteChannelIds: Set<string>;
     onFavoriteAction: FavoriteActions;
     onAddFromFavorite: (ch: { type: 'youtube' | 'twitch'; title: string; sourceId: string; inputType: 'channel' | 'video' | 'url' }) => void;
-    onAddToFavorites: (entry: HistoryEntry) => void;
+    onAddToFavorites: (entry: HistoryEntry, folderId?: string | null) => void;
+    onBulkAddFromFolder: (folderId: string) => void;
     isPinned?: boolean;
     onPinChange?: (pinned: boolean) => void;
     getFavFolders?: () => FolderInfo[];
@@ -59,7 +59,8 @@ const StreamSidePanel: React.FC<StreamSidePanelProps> = ({
     streams, onToggleHidden, onRemove, onReorder,
     history, onAddFromHistory, onRemoveFromHistory, onReorderHistory,
     locale, swapped = false, hideDelay = 500,
-    onOpenAddModal, favorites, favoriteChannelIds, onFavoriteAction, onAddFromFavorite, onAddToFavorites,
+    onOpenAddModal, favorites, favoriteChannelIds, onFavoriteAction, onAddFromFavorite,
+    onAddToFavorites, onBulkAddFromFolder,
     isPinned = false, onPinChange, getFavFolders,
 }) => {
     const { visible, show, scheduleHide } = useHoverPanel({ hideDelay, idleTimeout: 5000, isPinned });
@@ -73,7 +74,6 @@ const StreamSidePanel: React.FC<StreamSidePanelProps> = ({
         direction: swapped ? 'left' : 'right',
     });
 
-    // CSS 変数 --stream-panel-width を幅に合わせて更新（ピン留め padding と連動）
     useEffect(() => {
         document.documentElement.style.setProperty('--stream-panel-width', `${panelWidth}px`);
     }, [panelWidth]);
@@ -89,11 +89,93 @@ const StreamSidePanel: React.FC<StreamSidePanelProps> = ({
         });
     };
 
-    // ── ドラッグ ──
+    // ── Explorer 風選択 ──
+    const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+    const [selectedSection, setSelectedSection] = useState<'favorites' | 'history' | null>(null);
+    const [moveTargetFolder, setMoveTargetFolder] = useState('__root__');
+
+    const handleSelect = useCallback((id: string, ctrlKey: boolean, section: 'favorites' | 'history') => {
+        if (section !== selectedSection) {
+            setSelectedIds(new Set([id]));
+            setSelectedSection(section);
+            return;
+        }
+        if (ctrlKey) {
+            setSelectedIds(prev => {
+                const next = new Set(prev);
+                next.has(id) ? next.delete(id) : next.add(id);
+                if (next.size === 0) setSelectedSection(null);
+                return next;
+            });
+        } else {
+            setSelectedIds(new Set([id]));
+        }
+    }, [selectedSection]);
+
+    const clearSelection = useCallback(() => {
+        setSelectedIds(new Set());
+        setSelectedSection(null);
+        setMoveTargetFolder('__root__');
+    }, []);
+
+    // ESC で選択解除
+    useEffect(() => {
+        const onKeyDown = (e: KeyboardEvent) => {
+            if (e.key === 'Escape' && selectedIds.size > 0) {
+                clearSelection();
+            }
+        };
+        window.addEventListener('keydown', onKeyDown);
+        return () => window.removeEventListener('keydown', onKeyDown);
+    }, [selectedIds.size, clearSelection]);
+
+    // ── アクションバーのバルク操作 ──
+    const handleBulkMove = useCallback(() => {
+        const target = moveTargetFolder === '__root__' ? null : moveTargetFolder;
+        selectedIds.forEach(id => onFavoriteAction.moveNode(id, target));
+        clearSelection();
+    }, [selectedIds, moveTargetFolder, onFavoriteAction, clearSelection]);
+
+    const handleBulkRemove = useCallback(() => {
+        selectedIds.forEach(id => onFavoriteAction.removeNode(id));
+        clearSelection();
+    }, [selectedIds, onFavoriteAction, clearSelection]);
+
+    const handleBulkAddHistoryToFavorites = useCallback(() => {
+        selectedIds.forEach(historyId => {
+            const entry = history.find(e => e.historyId === historyId);
+            if (entry) onAddToFavorites(entry);
+        });
+        clearSelection();
+    }, [selectedIds, history, onAddToFavorites, clearSelection]);
+
+    // ── ドラッグ（Active セクション内の並べ替え） ──
     const { draggingId, dragOverId, handleMouseDown: handleStreamMouseDown } =
         useDragReorder('streamId', onReorder);
-    const { draggingId: draggingHistoryId, dragOverId: dragOverHistoryId, handleMouseDown: handleHistoryMouseDown } =
-        useDragReorder('historyId', onReorderHistory);
+
+    // ── 履歴ドラッグ（セクション内並べ替え + お気に入りへのクロスドロップ） ──
+    const handleHistoryCrossDrop = useCallback((historyId: string, folderId: string) => {
+        const entry = history.find(e => e.historyId === historyId);
+        if (!entry) return;
+        onAddToFavorites(entry, folderId === '__fav_root__' ? null : folderId);
+    }, [history, onAddToFavorites]);
+
+    const handleHistoryCrossDropToRoot = useCallback((historyId: string, _targetId: string) => {
+        const entry = history.find(e => e.historyId === historyId);
+        if (entry) onAddToFavorites(entry, null);
+    }, [history, onAddToFavorites]);
+
+    const crossDropTargets = useMemo(() => [
+        { datasetKey: 'folderDrop', onDrop: handleHistoryCrossDrop },
+        { datasetKey: 'favSectionDrop', onDrop: handleHistoryCrossDropToRoot },
+    ], [handleHistoryCrossDrop, handleHistoryCrossDropToRoot]);
+
+    const {
+        draggingId: draggingHistoryId,
+        dragOverId: dragOverHistoryId,
+        crossDropTargetId: historyCrossDropId,
+        handleMouseDown: handleHistoryMouseDown,
+    } = useDragReorder('historyId', onReorderHistory, { crossDropTargets });
 
     // ── フィルタ ──
     const activeSourceIds = useMemo(() => {
@@ -124,30 +206,8 @@ const StreamSidePanel: React.FC<StreamSidePanelProps> = ({
     const [creatingRootFolder, setCreatingRootFolder] = useState(false);
     const [rootFolderName, setRootFolderName] = useState('');
 
-    // ── お気に入り編集モード ──
-    const [editMode, setEditMode] = useState(false);
-    const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
-    const [moveTargetId, setMoveTargetId] = useState<string>('__root__'); // '__root__' = ルート
-
-    const toggleSelect = (id: string) => {
-        setSelectedIds(prev => {
-            const next = new Set(prev);
-            next.has(id) ? next.delete(id) : next.add(id);
-            return next;
-        });
-    };
-
-    const handleBulkMove = () => {
-        const target = moveTargetId === '__root__' ? null : moveTargetId;
-        selectedIds.forEach(id => onFavoriteAction.moveNode(id, target));
-        setSelectedIds(new Set());
-    };
-
-    const exitEditMode = () => {
-        setEditMode(false);
-        setSelectedIds(new Set());
-        setMoveTargetId('__root__');
-    };
+    // ── お気に入りセクションヘッダーがドロップターゲットか ──
+    const isFavSectionDropTarget = historyCrossDropId === '__fav_root__' || historyCrossDropId === 'root';
 
     const renderStreamItem = (stream: Stream, isHidden: boolean) => {
         const isDragging = draggingId === stream.id;
@@ -260,8 +320,9 @@ const StreamSidePanel: React.FC<StreamSidePanelProps> = ({
 
                     {/* ── お気に入りセクション（折りたたみ可） ── */}
                     <div
-                        className={`section-header${sections.favorites ? ' collapsed' : ''}`}
+                        className={`section-header${sections.favorites ? ' collapsed' : ''}${isFavSectionDropTarget ? ' is-drop-target' : ''}`}
                         onClick={() => toggleSection('favorites')}
+                        data-fav-section-drop="root"
                     >
                         <ChevronRight size={12} className="section-chevron" />
                         <Star size={11} className="section-icon" />
@@ -269,33 +330,17 @@ const StreamSidePanel: React.FC<StreamSidePanelProps> = ({
                             {label('お気に入り', 'Favorites')}
                             {favChannelCount > 0 && ` (${favChannelCount})`}
                         </span>
-                        {!editMode && (
-                            <button
-                                className="section-header-action"
-                                onClick={(e) => {
-                                    e.stopPropagation();
-                                    setCreatingRootFolder(true);
-                                    if (sections.favorites) toggleSection('favorites');
-                                }}
-                                title={label('フォルダを追加', 'Add folder')}
-                                aria-label={label('フォルダを追加', 'Add folder')}
-                            >
-                                <FolderPlus size={12} />
-                            </button>
-                        )}
                         <button
-                            className={`section-header-action fav-edit-btn${editMode ? ' active' : ''}`}
+                            className="section-header-action"
                             onClick={(e) => {
                                 e.stopPropagation();
-                                if (editMode) { exitEditMode(); } else {
-                                    setEditMode(true);
-                                    if (sections.favorites) toggleSection('favorites');
-                                }
+                                setCreatingRootFolder(true);
+                                if (sections.favorites) toggleSection('favorites');
                             }}
-                            title={editMode ? label('編集終了', 'Done') : label('編集', 'Edit')}
-                            aria-label={editMode ? label('編集終了', 'Done') : label('編集', 'Edit')}
+                            title={label('フォルダを追加', 'Add folder')}
+                            aria-label={label('フォルダを追加', 'Add folder')}
                         >
-                            {editMode ? label('完了', 'Done') : label('編集', 'Edit')}
+                            <FolderPlus size={12} />
                         </button>
                     </div>
                     {!sections.favorites && (
@@ -336,45 +381,17 @@ const StreamSidePanel: React.FC<StreamSidePanelProps> = ({
                                 actions={onFavoriteAction}
                                 onAddFromFavorite={onAddFromFavorite}
                                 locale={locale}
-                                editMode={editMode}
-                                selectedIds={selectedIds}
-                                onToggleSelect={toggleSelect}
+                                selectedIds={selectedSection === 'favorites' ? selectedIds : new Set<string>()}
+                                onSelect={(id, ctrlKey) => handleSelect(id, ctrlKey, 'favorites')}
+                                onBulkAddFromFolder={onBulkAddFromFolder}
+                                externalDragOverFolderId={historyCrossDropId}
                             />
                             {favorites.length === 0 && !creatingRootFolder && (
                                 <div className="side-panel-empty" style={{ fontSize: '0.68rem' }}>
                                     {label(
-                                        '履歴の★からチャンネルを追加',
-                                        'Add channels from history ★',
+                                        '履歴からドラッグしてチャンネルを追加',
+                                        'Drag channels from history to add',
                                     )}
-                                </div>
-                            )}
-                            {/* ── 編集モード: 移動バー ── */}
-                            {editMode && (
-                                <div className="fav-edit-bar">
-                                    <span className="fav-edit-bar-count">
-                                        {label(`${selectedIds.size}件選択`, `${selectedIds.size} selected`)}
-                                    </span>
-                                    <select
-                                        className="fav-edit-bar-select"
-                                        value={moveTargetId}
-                                        onChange={e => setMoveTargetId(e.target.value)}
-                                        aria-label={label('移動先フォルダ', 'Target folder')}
-                                    >
-                                        <option value="__root__">{label('ルート', 'Root')}</option>
-                                        {(getFavFolders?.() ?? []).map(f => (
-                                            <option key={f.id} value={f.id}>
-                                                {'　'.repeat(f.depth)}{f.name}
-                                            </option>
-                                        ))}
-                                    </select>
-                                    <button
-                                        className="fav-edit-bar-move"
-                                        onClick={handleBulkMove}
-                                        disabled={selectedIds.size === 0}
-                                        aria-label={label('移動', 'Move')}
-                                    >
-                                        {label('移動', 'Move')}
-                                    </button>
                                 </div>
                             )}
                         </div>
@@ -397,23 +414,29 @@ const StreamSidePanel: React.FC<StreamSidePanelProps> = ({
                     {!sections.history && availableHistory.map(entry => {
                         const isHistDragging = draggingHistoryId === entry.historyId;
                         const isHistTarget = dragOverHistoryId === entry.historyId && draggingHistoryId !== entry.historyId;
+                        const isSelected = selectedSection === 'history' && selectedIds.has(entry.historyId);
                         const histCls = [
                             'side-panel-item is-history',
                             isHistDragging ? 'is-dragging-item' : '',
                             isHistTarget ? 'is-drag-target' : '',
+                            isSelected ? 'is-selected' : '',
                         ].filter(Boolean).join(' ');
                         return (
                             <div key={entry.historyId} className={histCls} data-history-id={entry.historyId}>
                                 <button
                                     className="side-panel-drag-handle"
                                     onMouseDown={(e) => handleHistoryMouseDown(e, entry.historyId)}
-                                    title={label('ドラッグして並べ替え', 'Drag to reorder')}
+                                    title={label('ドラッグして並べ替え（お気に入りフォルダにドロップ可）', 'Drag to reorder or drop onto favorites folder')}
                                     aria-label={label('ドラッグして並べ替え', 'Drag to reorder')}
                                 >
                                     <GripVertical size={12} />
                                 </button>
                                 <PlatformIcon type={entry.type} size={14} />
-                                <span className="side-panel-item-title" title={entry.title}>
+                                <span
+                                    className="side-panel-item-title"
+                                    title={entry.title}
+                                    onClick={(e) => handleSelect(entry.historyId, e.ctrlKey || e.metaKey, 'history')}
+                                >
                                     {getDisplayName(entry.title)}
                                 </span>
                                 <button
@@ -444,6 +467,58 @@ const StreamSidePanel: React.FC<StreamSidePanelProps> = ({
                         );
                     })}
                 </div>
+
+                {/* ── コンテキストアクションバー（選択時のみ表示） ── */}
+                {selectedIds.size > 0 && (
+                    <div className="context-action-bar">
+                        <span className="context-action-count">
+                            {label(`${selectedIds.size}件選択`, `${selectedIds.size} selected`)}
+                        </span>
+                        {selectedSection === 'favorites' && (
+                            <>
+                                <select
+                                    className="context-action-select"
+                                    value={moveTargetFolder}
+                                    onChange={e => setMoveTargetFolder(e.target.value)}
+                                    aria-label={label('移動先フォルダ', 'Target folder')}
+                                >
+                                    <option value="__root__">{label('ルート', 'Root')}</option>
+                                    {(getFavFolders?.() ?? []).map(f => (
+                                        <option key={f.id} value={f.id}>
+                                            {'  '.repeat(f.depth)}{f.name}
+                                        </option>
+                                    ))}
+                                </select>
+                                <button
+                                    className="context-action-btn"
+                                    onClick={handleBulkMove}
+                                    disabled={selectedIds.size === 0}
+                                    title={label('移動', 'Move')}
+                                >
+                                    <ArrowRight size={11} />
+                                    <span>{label('移動', 'Move')}</span>
+                                </button>
+                                <button
+                                    className="context-action-btn danger"
+                                    onClick={handleBulkRemove}
+                                    title={label('削除', 'Remove')}
+                                >
+                                    <Trash2 size={11} />
+                                </button>
+                            </>
+                        )}
+                        {selectedSection === 'history' && (
+                            <button
+                                className="context-action-btn"
+                                onClick={handleBulkAddHistoryToFavorites}
+                                title={label('お気に入りに追加', 'Add to favorites')}
+                            >
+                                <Star size={11} />
+                                <span>{label('お気に入りに追加', 'Favorites')}</span>
+                            </button>
+                        )}
+                    </div>
+                )}
             </div>
         </>
     );

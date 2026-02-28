@@ -471,48 +471,104 @@
 }
 
 
-/* ===== 編集モード ===== */
+/* ===== Explorer 風選択ハイライト ===== */
 
-.fav-edit-btn {
-  font-size: 0.62rem;
-  font-weight: 600;
-  padding: 1px 6px !important;
+.fav-channel-item.is-selected {
+  background: rgba(139, 92, 246, 0.12);
+  outline: 1px solid rgba(139, 92, 246, 0.25);
   border-radius: 3px;
-  opacity: 1 !important; /* section-header-action はデフォルト opacity: 0 なので上書き */
-  color: var(--text-secondary) !important;
 }
 
-.fav-edit-btn.active {
-  color: var(--accent) !important;
-  background: rgba(139, 92, 246, 0.15) !important;
+.fav-channel-item.is-selected:hover {
+  background: rgba(139, 92, 246, 0.18);
 }
 
-.fav-checkbox {
-  width: 13px;
-  height: 13px;
-  flex-shrink: 0;
+.side-panel-item.is-history.is-selected {
+  background: rgba(139, 92, 246, 0.12);
+  outline: 1px solid rgba(139, 92, 246, 0.25);
+  border-radius: 3px;
+  opacity: 1;
+}
+
+.side-panel-item.is-history.is-selected:hover {
+  background: rgba(139, 92, 246, 0.18);
+}
+
+/* チャンネル名クリックで選択可能を示す */
+.fav-channel-title {
   cursor: pointer;
-  accent-color: var(--accent);
-  margin: 0;
 }
 
-.fav-edit-bar {
+.side-panel-item.is-history .side-panel-item-title {
+  cursor: pointer;
+}
+
+/* ===== クロスセクションドロップターゲット ===== */
+
+.fav-folder.is-cross-drop-target > .fav-folder-header {
+  background: rgba(139, 92, 246, 0.22);
+  border-radius: 4px;
+  outline: 2px solid rgba(139, 92, 246, 0.5);
+  outline-offset: -1px;
+}
+
+.section-header.is-drop-target {
+  background: rgba(139, 92, 246, 0.15);
+  border-radius: 4px;
+  outline: 1px dashed rgba(139, 92, 246, 0.4);
+}
+
+/* ===== フォルダ一括追加ボタン ===== */
+
+.fav-folder-bulk-add {
+  background: transparent;
+  border: none;
+  color: var(--text-secondary);
+  cursor: pointer;
+  padding: 2px 4px;
+  border-radius: 3px;
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+  opacity: 0;
+  transition: opacity 0.1s, color 0.1s, background 0.1s;
+}
+
+.fav-folder-header:hover .fav-folder-bulk-add {
+  opacity: 0.7;
+}
+
+.fav-folder-bulk-add:hover {
+  opacity: 1 !important;
+  background: rgba(139, 92, 246, 0.15);
+  color: var(--accent);
+}
+
+/* ===== コンテキストアクションバー ===== */
+
+.context-action-bar {
   display: flex;
   align-items: center;
   gap: 6px;
-  padding: 6px 8px;
+  padding: 8px 10px;
   border-top: 1px solid rgba(255, 255, 255, 0.06);
-  background: rgba(139, 92, 246, 0.06);
+  background: rgba(10, 14, 23, 0.98);
   flex-shrink: 0;
+  animation: contextSlideUp 0.15s ease-out;
 }
 
-.fav-edit-bar-count {
+@keyframes contextSlideUp {
+  from { transform: translateY(100%); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
+.context-action-count {
   font-size: 0.65rem;
   color: var(--text-secondary);
   white-space: nowrap;
 }
 
-.fav-edit-bar-select {
+.context-action-select {
   flex: 1;
   min-width: 0;
   font-size: 0.65rem;
@@ -520,33 +576,47 @@
   border: 1px solid rgba(255, 255, 255, 0.12);
   border-radius: 4px;
   color: var(--text-primary);
-  padding: 2px 4px;
+  padding: 3px 6px;
   cursor: pointer;
 }
 
-.fav-edit-bar-select:focus {
+.context-action-select:focus {
   outline: none;
   border-color: var(--accent);
 }
 
-.fav-edit-bar-move {
-  background: rgba(139, 92, 246, 0.2);
-  border: 1px solid rgba(139, 92, 246, 0.35);
+.context-action-btn {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  background: rgba(139, 92, 246, 0.15);
+  border: 1px solid rgba(139, 92, 246, 0.3);
   border-radius: 4px;
   color: var(--accent);
   font-size: 0.65rem;
   font-weight: 600;
-  padding: 2px 8px;
+  padding: 3px 10px;
   cursor: pointer;
   white-space: nowrap;
   transition: background 0.1s;
 }
 
-.fav-edit-bar-move:hover:not(:disabled) {
-  background: rgba(139, 92, 246, 0.35);
+.context-action-btn:hover {
+  background: rgba(139, 92, 246, 0.25);
 }
 
-.fav-edit-bar-move:disabled {
+.context-action-btn.danger {
+  color: var(--danger);
+  border-color: rgba(239, 68, 68, 0.3);
+  background: rgba(239, 68, 68, 0.1);
+  padding: 3px 6px;
+}
+
+.context-action-btn.danger:hover {
+  background: rgba(239, 68, 68, 0.2);
+}
+
+.context-action-btn:disabled {
   opacity: 0.4;
   cursor: not-allowed;
 }

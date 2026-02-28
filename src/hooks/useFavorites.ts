@@ -92,6 +92,28 @@ function collectFolders(tree: FavoriteNode[], out: FolderInfo[], depth = 0) {
     }
 }
 
+/** 指定フォルダ配下の全チャンネルを再帰的に収集 */
+export function collectChannelsFromFolder(tree: FavoriteNode[], folderId: string): FavoriteChannel[] {
+    for (const node of tree) {
+        if (node.kind === 'folder') {
+            if (node.id === folderId) {
+                const channels: FavoriteChannel[] = [];
+                const collect = (nodes: FavoriteNode[]) => {
+                    for (const n of nodes) {
+                        if (n.kind === 'channel') channels.push(n);
+                        else collect(n.children);
+                    }
+                };
+                collect(node.children);
+                return channels;
+            }
+            const result = collectChannelsFromFolder(node.children, folderId);
+            if (result.length > 0) return result;
+        }
+    }
+    return [];
+}
+
 /** ツリー内の全チャンネルを "type:sourceId" 形式で収集 */
 function collectChannelIds(tree: FavoriteNode[], out: Set<string>) {
     for (const node of tree) {

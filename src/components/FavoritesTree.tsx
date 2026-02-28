@@ -12,20 +12,22 @@ interface FavoritesTreeProps {
     actions: FavoriteActions;
     onAddFromFavorite: (node: { type: 'youtube' | 'twitch'; title: string; sourceId: string; inputType: 'channel' | 'video' | 'url' }) => void;
     locale: Locale;
-    editMode?: boolean;
-    selectedIds?: Set<string>;
-    onToggleSelect?: (id: string) => void;
+    // Explorer 風選択
+    selectedIds: Set<string>;
+    onSelect: (id: string, ctrlKey: boolean) => void;
+    onBulkAddFromFolder: (folderId: string) => void;
+    externalDragOverFolderId?: string | null;
 }
 
 const getDisplayName = (title: string) => title.replace(/^(YouTube|Twitch):\s*/, '');
 
 const FavoritesTree: React.FC<FavoritesTreeProps> = ({
     nodes, depth = 0, activeSourceIds, actions, onAddFromFavorite, locale,
-    editMode = false, selectedIds, onToggleSelect,
+    selectedIds, onSelect, onBulkAddFromFolder, externalDragOverFolderId,
 }) => {
     const label = (ja: string, en: string) => locale === 'ja' ? ja : en;
 
-    // ── ドラッグ状態 ──
+    // ── ドラッグ状態（ツリー内部の並べ替え・フォルダ移動用） ──
     const [draggingId, setDraggingId] = useState<string | null>(null);
     const [dragOverId, setDragOverId] = useState<string | null>(null);
     const [dragOverFolderId, setDragOverFolderId] = useState<string | null>(null);
@@ -77,10 +79,8 @@ const FavoritesTree: React.FC<FavoritesTreeProps> = ({
             const fromId = draggingIdRef.current;
 
             if (fromId && dragOverFolderId && fromId !== dragOverFolderId) {
-                // フォルダへドロップ
                 actions.moveNode(fromId, dragOverFolderId);
             } else if (fromId && dragOverId && fromId !== dragOverId) {
-                // 同レベル並べ替え
                 actions.reorderInParent(fromId, dragOverId);
             }
 
@@ -126,11 +126,13 @@ const FavoritesTree: React.FC<FavoritesTreeProps> = ({
             {nodes.map(node => {
                 if (node.kind === 'folder') {
                     const isDragging = draggingId === node.id;
-                    const isDropTarget = dragOverFolderId === node.id && draggingId !== node.id;
+                    const isInternalDropTarget = dragOverFolderId === node.id && draggingId !== node.id;
+                    const isExternalDropTarget = externalDragOverFolderId === node.id;
                     const folderCls = [
                         'fav-folder',
                         isDragging ? 'is-dragging-item' : '',
-                        isDropTarget ? 'is-folder-drop-target' : '',
+                        isInternalDropTarget ? 'is-folder-drop-target' : '',
+                        isExternalDropTarget ? 'is-cross-drop-target' : '',
                     ].filter(Boolean).join(' ');
 
                     return (
@@ -140,48 +142,14 @@ const FavoritesTree: React.FC<FavoritesTreeProps> = ({
                                 data-folder-drop={node.id}
                                 style={{ paddingLeft: `${8 + depth * 16}px` }}
                             >
-                                {editMode ? (
-                                    (() => {
-                                        // フォルダ配下の全チャンネルIDを収集
-                                        const folderChannelIds: string[] = [];
-                                        const collect = (children: FavoriteNode[]) => {
-                                            children.forEach(c => {
-                                                if (c.kind === 'channel') folderChannelIds.push(c.id);
-                                                else collect(c.children);
-                                            });
-                                        };
-                                        collect(node.children);
-                                        const allSelected = folderChannelIds.length > 0 && folderChannelIds.every(id => selectedIds?.has(id));
-                                        return (
-                                            <input
-                                                type="checkbox"
-                                                className="fav-checkbox"
-                                                checked={allSelected}
-                                                onChange={() => {
-                                                    folderChannelIds.forEach(id => {
-                                                        if (allSelected || !selectedIds?.has(id)) onToggleSelect?.(id);
-                                                        else if (!allSelected && !selectedIds?.has(id)) onToggleSelect?.(id);
-                                                    });
-                                                    if (!allSelected) {
-                                                        folderChannelIds.forEach(id => { if (!selectedIds?.has(id)) onToggleSelect?.(id); });
-                                                    } else {
-                                                        folderChannelIds.forEach(id => { if (selectedIds?.has(id)) onToggleSelect?.(id); });
-                                                    }
-                                                }}
-                                                title={allSelected ? label('全解除', 'Deselect all') : label('全選択', 'Select all')}
-                                            />
-                                        );
-                                    })()
-                                ) : (
-                                    <button
-                                        className="side-panel-drag-handle"
-                                        onMouseDown={e => handleDragStart(e, node.id)}
-                                        title={label('ドラッグして移動', 'Drag to move')}
-                                        aria-label={label('ドラッグして移動', 'Drag to move')}
-                                    >
-                                        <GripVertical size={12} />
-                                    </button>
-                                )}
+                                <button
+                                    className="side-panel-drag-handle"
+                                    onMouseDown={e => handleDragStart(e, node.id)}
+                                    title={label('ドラッグして移動', 'Drag to move')}
+                                    aria-label={label('ドラッグして移動', 'Drag to move')}
+                                >
+                                    <GripVertical size={12} />
+                                </button>
                                 <button
                                     className="fav-folder-toggle"
                                     onClick={() => actions.toggleCollapse(node.id)}
@@ -214,6 +182,18 @@ const FavoritesTree: React.FC<FavoritesTreeProps> = ({
                                         {node.name}
                                     </span>
                                 )}
+                                {/* フォルダ内全チャンネルを一括追加 */}
+                                <button
+                                    className="fav-folder-bulk-add"
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        onBulkAddFromFolder(node.id);
+                                    }}
+                                    title={label('フォルダ内の全チャンネルを追加', 'Add all channels in folder')}
+                                    aria-label={label('フォルダ内の全チャンネルを追加', 'Add all channels in folder')}
+                                >
+                                    <Plus size={11} />
+                                </button>
                                 {depth < 1 && (
                                     <button
                                         className="side-panel-toggle-btn"
@@ -259,9 +239,10 @@ const FavoritesTree: React.FC<FavoritesTreeProps> = ({
                                         actions={actions}
                                         onAddFromFavorite={onAddFromFavorite}
                                         locale={locale}
-                                        editMode={editMode}
                                         selectedIds={selectedIds}
-                                        onToggleSelect={onToggleSelect}
+                                        onSelect={onSelect}
+                                        onBulkAddFromFolder={onBulkAddFromFolder}
+                                        externalDragOverFolderId={externalDragOverFolderId}
                                     />
                                 </div>
                             )}
@@ -273,11 +254,13 @@ const FavoritesTree: React.FC<FavoritesTreeProps> = ({
                 const isActive = activeSourceIds.has(`${node.type}:${node.sourceId}`);
                 const isDragging = draggingId === node.id;
                 const isDragTarget = dragOverId === node.id && draggingId !== node.id;
+                const isSelected = selectedIds.has(node.id);
                 const chCls = [
                     'fav-channel-item',
                     isActive ? 'is-active' : '',
                     isDragging ? 'is-dragging-item' : '',
                     isDragTarget ? 'is-drag-target' : '',
+                    isSelected ? 'is-selected' : '',
                 ].filter(Boolean).join(' ');
 
                 return (
@@ -287,25 +270,20 @@ const FavoritesTree: React.FC<FavoritesTreeProps> = ({
                         data-fav-id={node.id}
                         style={{ paddingLeft: `${8 + depth * 16}px` }}
                     >
-                        {editMode ? (
-                            <input
-                                type="checkbox"
-                                className="fav-checkbox"
-                                checked={selectedIds?.has(node.id) ?? false}
-                                onChange={() => onToggleSelect?.(node.id)}
-                            />
-                        ) : (
-                            <button
-                                className="side-panel-drag-handle"
-                                onMouseDown={e => handleDragStart(e, node.id)}
-                                title={label('ドラッグして移動', 'Drag to move')}
-                                aria-label={label('ドラッグして移動', 'Drag to move')}
-                            >
-                                <GripVertical size={12} />
-                            </button>
-                        )}
+                        <button
+                            className="side-panel-drag-handle"
+                            onMouseDown={e => handleDragStart(e, node.id)}
+                            title={label('ドラッグして移動', 'Drag to move')}
+                            aria-label={label('ドラッグして移動', 'Drag to move')}
+                        >
+                            <GripVertical size={12} />
+                        </button>
                         <PlatformIcon type={node.type} size={14} />
-                        <span className="fav-channel-title" title={node.title}>
+                        <span
+                            className="fav-channel-title"
+                            title={node.title}
+                            onClick={(e) => onSelect(node.id, e.ctrlKey || e.metaKey)}
+                        >
                             {getDisplayName(node.title)}
                         </span>
                         {isActive ? (
@@ -340,7 +318,6 @@ const FavoritesTree: React.FC<FavoritesTreeProps> = ({
             })}
 
             {/* ルートレベルの新規フォルダ入力 */}
-            {depth === 0 && creatingInFolderId === null && nodes.length === 0 && null}
             {creatingInFolderId === '__root__' && depth === 0 && (
                 <div className="fav-new-folder-row" style={{ paddingLeft: `${8 + depth * 16}px` }}>
                     <Folder size={13} className="fav-folder-icon" />
