@@ -30,7 +30,32 @@
       "Bash(git add src/hooks/useSettings.ts src/components/SettingsModal.tsx src/components/ChatSidePanel.tsx src/components/StreamSidePanel.tsx src/App.tsx src/side-panel.css src/index.css)",
       "Bash(git add src/components/ChatSidePanel.tsx)",
       "Bash(git add .)",
-      "Bash(git add src/components/StreamGrid.tsx)"
+      "Bash(git add src/components/StreamGrid.tsx)",
+      "Bash(git add src/components/StreamSidePanel.tsx src/side-panel.css)",
+      "Bash(git add CLAUDE.md)",
+      "Bash(git add src/components/StreamFrame.tsx src/components/StreamSidePanel.tsx src/index.css index.html)",
+      "Bash(git add src/components/StreamSidePanel.tsx)",
+      "Bash(git add src/hooks/useHoverPanel.ts src/components/StreamSidePanel.tsx src/components/ChatSidePanel.tsx src/App.tsx src/side-panel.css src/index.css)",
+      "Bash(git add src/index.css src/side-panel.css)",
+      "Bash(git add src/hooks/useSettings.ts src/hooks/useKeyboardShortcuts.ts src/components/SettingsModal.tsx src/components/ChatSidePanel.tsx src/components/StreamSidePanel.tsx src/App.tsx src/side-panel.css src/index.css)",
+      "Bash(git add src/components/PlatformIcon.tsx src/components/StreamSidePanel.tsx src/side-panel.css)",
+      "Bash(npx vite build --mode development)",
+      "Bash(git add src/types.ts src/hooks/useFavorites.ts src/components/FavoritesTree.tsx src/components/StreamSidePanel.tsx src/App.tsx src/side-panel.css)",
+      "Bash(git add src/hooks/useHoverPanel.ts src/hooks/useResizable.ts src/hooks/useFavorites.ts src/components/StreamSidePanel.tsx src/components/FavoritesTree.tsx src/App.tsx src/side-panel.css src/index.css)",
+      "Bash(npx vite build)",
+      "Bash(git add src/hooks/useDragReorder.ts src/hooks/useFavorites.ts src/components/FavoritesTree.tsx src/components/StreamSidePanel.tsx src/App.tsx src/side-panel.css)",
+      "Bash(git add src/components/ShareModal.tsx src/components/StreamSidePanel.tsx src/components/FavoritesTree.tsx src/hooks/useFavorites.ts src/hooks/useStreamHistory.ts src/App.tsx src/index.css src/side-panel.css)",
+      "Bash(git add src/App.tsx src/components/ShareModal.tsx)",
+      "Bash(gh --version)",
+      "Bash(winget list GitHub.cli)",
+      "Bash(where.exe gh)",
+      "Bash(npx vercel --version)",
+      "Bash(git remote add origin https://github.com/manato003/multistream-app.git)",
+      "Bash(git push -u origin master)",
+      "Bash(New-Item -ItemType Directory -Path \"C:\\\\Users\\\\manat\\\\OneDrive\\\\Desktop\\\\claude\\\\projects\" -Force)",
+      "Bash(Out-Null)",
+      "Bash(Move-Item -Path \"C:\\\\Users\\\\manat\\\\OneDrive\\\\Desktop\\\\claude\\\\multistream-app\" -Destination \"C:\\\\Users\\\\manat\\\\OneDrive\\\\Desktop\\\\claude\\\\projects\\\\multistream-app\" -ErrorAction Stop)",
+      "Bash(Write-Output \"移動完了\")"
     ]
   }
 }
