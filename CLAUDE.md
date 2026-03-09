@@ -1,7 +1,7 @@
 # CLAUDE.md - Multistream Nexus
 
 このファイルは新しいチャットセッション開始時に必ず読み込むこと。
-共通ワークフロー・原則は `~/.claude/CLAUDE.md` に定義されており、自動適用される。
+共通ワークフロー・原則は `C:/Dev/claude/CLAUDE.md` に定義されており、自動適用される。
 
 ---
 
@@ -14,7 +14,7 @@
 - `StreamFrame` の `key` に `reloadKey` を含めない（全フレームリマウントのバグが再発する）
 - テーマはダークモードのみ（ライトモード復活させない）
 - UIの実装・修正時は `C:/Dev/claude/skills/frontend-design/SKILL.md` に従い、AI slopなデザイン（Inter フォント多用、紫グラデーション等）を避けること
-- コンポーネント作成・デザイン修正時は `C:/Dev/claude/skills/ui-ux-pro-max-skill-main/.claude/skills/ui-ux-pro-max/SKILL.md` を参照すること（本PJはカスタムCSS構成のため、Tailwind固有の指示は読み替えて適用）
+- コンポーネント作成・デザイン修正時は `C:/Dev/claude/skills/ui-ux-pro-max-skill-main/CLAUDE.md` を参照すること（本PJはカスタムCSS構成のため、Tailwind固有の指示は読み替えて適用）
 - CSS変数・カラーパレット・タイポグラフィはダークモード専用デザインシステムとして一貫性を維持すること
 
 ---
