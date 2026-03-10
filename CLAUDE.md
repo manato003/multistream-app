@@ -19,6 +19,18 @@
 
 ---
 
+## 推奨スキル（このPJ向け）
+
+| 場面 | スキル |
+|---|---|
+| UI実装（カスタムCSS） | `C:/Dev/claude/skills/frontend-design/` |
+| React UIパターン | `C:/Dev/claude/skills/antigravity/react-ui-patterns/` |
+| TypeScript | `C:/Dev/claude/skills/antigravity/typescript-expert/` |
+| コードレビュー | `C:/Dev/claude/skills/antigravity/code-reviewer/` |
+| デバッグ | `C:/Dev/claude/skills/antigravity/debugging-strategies/` |
+
+---
+
 ## セッション開始時のチェックリスト
 
 - [ ] `docs/project_context.md` を読む
